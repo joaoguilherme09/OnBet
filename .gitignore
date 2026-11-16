@@ -1,0 +1,25 @@
+# dependências e build
+node_modules
+dist
+dist-ssr
+coverage
+
+# variáveis de ambiente (chaves do Supabase) — só o exemplo vai pro Git
+.env
+.env.*
+!.env.example
+
+# Vercel
+.vercel
+
+# logs
+*.log
+npm-debug.log*
+
+# sistema e editores
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.swp

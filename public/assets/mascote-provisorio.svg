@@ -1,0 +1,9 @@
+<!-- PROVISÓRIO: substitua pelo arquivo oficial do mascote da ORG ON Camps
+     (mesmo nome, ou ajuste o caminho em src/components/Mascot.jsx). -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <ellipse cx="62" cy="88" rx="40" ry="22" fill="#D6A93F"/>
+  <circle cx="48" cy="48" r="24" fill="#D6A93F"/>
+  <path d="M22 50l-16 4 16 6z" fill="#F0CF7A"/>
+  <circle cx="44" cy="42" r="4" fill="#141518"/>
+  <path d="M74 80c14-10 26-8 34-2-8 2-16 10-34 2z" fill="#B08427"/>
+</svg>
