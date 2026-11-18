@@ -16,7 +16,7 @@ export default function Matches() {
   // agrupa por dia
   const groups = []
   for (const m of matches.data ?? []) {
-    const day = formatDay(m.scheduled_at)
+    const day = m.scheduled_at ? formatDay(m.scheduled_at) : 'Sem horário definido'
     const last = groups.at(-1)
     if (last?.day === day) last.items.push(m)
     else groups.push({ day, items: [m] })

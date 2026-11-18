@@ -36,8 +36,14 @@ export default function NextMatchHero({ match }) {
         </div>
 
         <div className="text-center">
-          <p className="num text-3xl font-bold text-gold-bright sm:text-5xl">{formatTime(match.scheduled_at)}</p>
-          <p className="mt-1 text-sm capitalize text-muted">{formatDay(match.scheduled_at)}</p>
+          {match.scheduled_at ? (
+            <>
+              <p className="num text-3xl font-bold text-gold-bright sm:text-5xl">{formatTime(match.scheduled_at)}</p>
+              <p className="mt-1 text-sm capitalize text-muted">{formatDay(match.scheduled_at)}</p>
+            </>
+          ) : (
+            <p className="num text-3xl font-bold text-gold-bright sm:text-5xl">x</p>
+          )}
         </div>
 
         <div className="flex flex-col items-center gap-3 text-center">

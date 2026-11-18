@@ -171,7 +171,7 @@ function EventModal({ event, comps, matches, onClose, onSaved }) {
       match_id: id,
       competition_id: m?.competition_id ?? f.competition_id,
       title: f.title || (m ? `${m.home?.name} x ${m.away?.name}` : ''),
-      closes_at: m ? toLocalInput(m.scheduled_at) : f.closes_at,
+      closes_at: m?.scheduled_at ? toLocalInput(m.scheduled_at) : f.closes_at,
     }))
   }
 
@@ -255,7 +255,8 @@ function EventModal({ event, comps, matches, onClose, onSaved }) {
             <option value="">Escolha…</option>
             {scheduledMatches.map((m) => (
               <option key={m.id} value={m.id}>
-                {m.home?.name} x {m.away?.name}, {formatDateTime(m.scheduled_at)}
+                {m.home?.name} x {m.away?.name}
+                {m.scheduled_at ? `, ${formatDateTime(m.scheduled_at)}` : ''}
               </option>
             ))}
           </Select>

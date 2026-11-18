@@ -15,8 +15,9 @@ export async function getUpcomingMatches(limit = 6) {
       .from('matches')
       .select(MATCH_FIELDS)
       .eq('status', 'scheduled')
-      .gte('scheduled_at', new Date().toISOString())
-      .order('scheduled_at', { ascending: true })
+      .or(`scheduled_at.is.null,scheduled_at.gte.${new Date().toISOString()}`)
+      .order('scheduled_at', { ascending: true, nullsFirst: false })
+      .order('created_at', { ascending: true })
       .limit(limit),
   )
 }
@@ -29,7 +30,7 @@ export async function getRecentResults(limit = 5) {
       .from('matches')
       .select(MATCH_FIELDS)
       .eq('status', 'finished')
-      .order('scheduled_at', { ascending: false })
+      .order('updated_at', { ascending: false })
       .limit(limit),
   )
 }
@@ -55,8 +56,12 @@ export async function getMatches({ scope = 'upcoming', competitionId, limit = 60
   const sb = requireSupabase()
   let q = sb.from('matches').select(MATCH_WITH_EVENTS).limit(limit)
   if (competitionId) q = q.eq('competition_id', competitionId)
-  if (scope === 'upcoming') q = q.in('status', ['scheduled', 'live']).order('scheduled_at', { ascending: true })
-  else q = q.in('status', ['finished', 'cancelled']).order('scheduled_at', { ascending: false })
+  if (scope === 'upcoming')
+    q = q
+      .in('status', ['scheduled', 'live'])
+      .order('scheduled_at', { ascending: true, nullsFirst: false })
+      .order('created_at', { ascending: true })
+  else q = q.in('status', ['finished', 'cancelled']).order('updated_at', { ascending: false })
   return unwrap(await q)
 }
 

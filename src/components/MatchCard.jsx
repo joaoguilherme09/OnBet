@@ -20,11 +20,13 @@ export default function MatchCard({ match }) {
             <span className="px-1 text-faint">:</span>
             {match.away_score}
           </span>
-        ) : (
+        ) : match.scheduled_at ? (
           <>
             <span className="num block text-base font-semibold text-gold-bright">{formatTime(match.scheduled_at)}</span>
             <span className="block text-xs text-muted">{formatDay(match.scheduled_at)}</span>
           </>
+        ) : (
+          <span className="num text-lg font-semibold text-gold-bright">x</span>
         )}
       </div>
 

@@ -17,7 +17,11 @@ export function isEventOpen(event, now = Date.now()) {
   if (!event || event.status !== 'open') return false
   if (new Date(event.opens_at).getTime() > now) return false
   if (new Date(event.closes_at).getTime() <= now) return false
-  if (event.match && (event.match.status !== 'scheduled' || new Date(event.match.scheduled_at).getTime() <= now)) return false
+  if (event.match) {
+    if (event.match.status !== 'scheduled') return false
+    // partida sem horário: vale só o prazo do evento
+    if (event.match.scheduled_at && new Date(event.match.scheduled_at).getTime() <= now) return false
+  }
   return true
 }
 

@@ -10,7 +10,7 @@ import { useAsync } from '../../hooks/useAsync'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { deleteMatch, listCompetitionsAdmin, listMatchesAdmin, listTeams, saveEvent, saveMatch } from '../../services/adminService'
-import { MATCH_STATUS_LABEL, formatDateTime, fromLocalInput, toLocalInput } from '../../utils/format'
+import { MATCH_STATUS_LABEL, fromLocalInput } from '../../utils/format'
 
 export default function AdminMatches() {
   const [competitionId, setCompetitionId] = useState('')
@@ -54,7 +54,7 @@ export default function AdminMatches() {
                   </p>
                   <p className="text-xs text-muted">
                     {m.competition?.name}
-                    {m.stage ? `, ${m.stage}` : ''}, {formatDateTime(m.scheduled_at)}, {MATCH_STATUS_LABEL[m.status]}
+                    {m.stage ? `, ${m.stage}` : ''}, {MATCH_STATUS_LABEL[m.status]}
                   </p>
                 </div>
                 {ev ? (
@@ -111,7 +111,6 @@ function MatchModal({ match, comps, teams, onClose, onSaved }) {
     home_team_id: match.home_team_id ?? '',
     away_team_id: match.away_team_id ?? '',
     stage: match.stage ?? '',
-    scheduled_at: toLocalInput(match.scheduled_at),
     status: match.status ?? 'scheduled',
     home_score: match.home_score ?? '',
     away_score: match.away_score ?? '',
@@ -125,11 +124,11 @@ function MatchModal({ match, comps, teams, onClose, onSaved }) {
   const teamOptions = compTeamIds.length ? teams.filter((t) => compTeamIds.includes(t.id)) : teams
 
   async function save() {
-    if (!form.competition_id || !form.home_team_id || !form.away_team_id || !form.scheduled_at)
-      return toast.error('Preencha campeonato, times e data.')
+    if (!form.competition_id || !form.home_team_id || !form.away_team_id)
+      return toast.error('Preencha campeonato e times.')
     setSaving(true)
     try {
-      await saveMatch({ ...form, scheduled_at: fromLocalInput(form.scheduled_at) })
+      await saveMatch({ ...form, scheduled_at: null })
       toast.success('Partida salva.')
       onSaved()
     } catch (e) {
@@ -197,7 +196,6 @@ function MatchModal({ match, comps, teams, onClose, onSaved }) {
             </option>
           ))}
         </Select>
-        <Input label="Data e horário" type="datetime-local" value={form.scheduled_at} onChange={set('scheduled_at')} />
         <Input label="Fase (opcional)" value={form.stage} onChange={set('stage')} placeholder="Ex.: Semifinal" />
         <Select label="Status" value={form.status} onChange={set('status')}>
           {Object.entries(MATCH_STATUS_LABEL).map(([v, l]) => (
@@ -206,10 +204,13 @@ function MatchModal({ match, comps, teams, onClose, onSaved }) {
             </option>
           ))}
         </Select>
-        <div className="grid grid-cols-2 gap-3">
-          <Input label="Gols mandante" inputMode="numeric" value={form.home_score} onChange={set('home_score')} />
-          <Input label="Gols visitante" inputMode="numeric" value={form.away_score} onChange={set('away_score')} />
-        </div>
+        {/* placar só faz sentido depois que a partida aconteceu */}
+        {form.status === 'finished' && (
+          <div className="grid grid-cols-2 gap-3">
+            <Input label="Gols mandante" inputMode="numeric" value={form.home_score} onChange={set('home_score')} />
+            <Input label="Gols visitante" inputMode="numeric" value={form.away_score} onChange={set('away_score')} />
+          </div>
+        )}
       </div>
       <p className="mt-4 text-xs text-muted">
         O placar não apura o evento sozinho: depois de finalizar, vá em Resultados e confirme a opção vencedora.
@@ -223,9 +224,11 @@ function OneXTwoModal({ match, onClose, onSaved }) {
   const { user } = useAuth()
   const [odds, setOdds] = useState({ home: '2.10', draw: '3.20', away: '2.80' })
   const [status, setStatus] = useState('open')
+  const [closesAt, setClosesAt] = useState('')
   const [saving, setSaving] = useState(false)
 
   async function save() {
+    if (!closesAt) return toast.error('Informe até quando os palpites ficam abertos.')
     setSaving(true)
     try {
       await saveEvent(
@@ -236,7 +239,7 @@ function OneXTwoModal({ match, onClose, onSaved }) {
           title: `${match.home.name} x ${match.away.name}`,
           status,
           opens_at: new Date().toISOString(),
-          closes_at: match.scheduled_at,
+          closes_at: fromLocalInput(closesAt),
         },
         [
           { name: match.home.name, odds: odds.home, status: 'active', team_id: match.home_team_id },
@@ -271,8 +274,10 @@ function OneXTwoModal({ match, onClose, onSaved }) {
     >
       <div className="space-y-4">
         <p className="text-sm text-muted">
-          {match.home.name} x {match.away.name}. Os palpites fecham no horário da partida ({formatDateTime(match.scheduled_at)}).
+          {match.home.name} x {match.away.name}. Os palpites ficam abertos até o prazo abaixo, ou até você marcar a partida
+          como "ao vivo" ou "finalizada".
         </p>
+        <Input label="Palpites fecham em" type="datetime-local" value={closesAt} onChange={(e) => setClosesAt(e.target.value)} />
         <div className="grid grid-cols-3 gap-3">
           <Input label={match.home.name} inputMode="decimal" value={odds.home} onChange={set('home')} />
           <Input label="Empate" inputMode="decimal" value={odds.draw} onChange={set('draw')} />

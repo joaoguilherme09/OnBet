@@ -84,7 +84,7 @@ export const listMatchesAdmin = async ({ competitionId } = {}) => {
       away:teams!matches_away_team_id_fkey ( id, name, short_name ),
       events:prediction_events ( id, status )
     `)
-    .order('scheduled_at', { ascending: false })
+    .order('created_at', { ascending: false })
     .limit(200)
   if (competitionId) q = q.eq('competition_id', competitionId)
   return unwrap(await q)
