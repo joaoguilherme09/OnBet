@@ -30,8 +30,8 @@ export const updateSettings = async ({ initial_balance, min_stake, max_stake }) 
 export const listTeams = async () =>
   unwrap(await sb().from('teams').select('id, name, short_name, logo_url').order('name'))
 
-export const saveTeam = async ({ id, name, short_name, logo_url }) => {
-  const row = { name: name.trim(), short_name: short_name?.trim().toUpperCase() || null, logo_url: logo_url?.trim() || null }
+export const saveTeam = async ({ id, name, logo_url }) => {
+  const row = { name: name.trim(), logo_url: logo_url?.trim() || null }
   const q = id ? sb().from('teams').update(row).eq('id', id) : sb().from('teams').insert(row)
   return unwrap(await q.select().single())
 }

@@ -251,7 +251,7 @@ function CompetitionModal({ competition, teams, onClose, onSaved }) {
 
 function TeamModal({ team, onClose, onSaved }) {
   const toast = useToast()
-  const [form, setForm] = useState({ id: team.id, name: team.name ?? '', short_name: team.short_name ?? '', logo_url: team.logo_url ?? '' })
+  const [form, setForm] = useState({ id: team.id, name: team.name ?? '', logo_url: team.logo_url ?? '' })
   const [saving, setSaving] = useState(false)
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
@@ -302,7 +302,6 @@ function TeamModal({ team, onClose, onSaved }) {
     >
       <div className="space-y-4">
         <Input label="Nome" value={form.name} onChange={set('name')} maxLength={60} />
-        <Input label="Sigla (2 a 5 letras)" value={form.short_name} onChange={set('short_name')} maxLength={5} />
         <Input label="URL do escudo (opcional)" value={form.logo_url} onChange={set('logo_url')} hint="PNG ou SVG com fundo transparente." />
       </div>
     </Modal>
