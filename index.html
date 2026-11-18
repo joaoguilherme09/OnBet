@@ -6,6 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#141518" />
     <meta name="description" content="ON BETS — a central de palpites da ORG ON Camps. Pontos virtuais, sem dinheiro real." />
+    <script>
+      try {
+        if (localStorage.getItem('onbets-theme') === 'light') {
+          document.documentElement.dataset.theme = 'light'
+          document.querySelector('meta[name="theme-color"]').content = '#faf7f0'
+        }
+      } catch {}
+    </script>
     <title>ON BETS | Palpites da ORG ON Camps</title>
   </head>
   <body>

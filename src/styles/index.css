@@ -29,6 +29,8 @@
   --color-loss: #e0675c;
   --color-void: #8c93a3;
 
+  --color-on-gold: #141518;    /* texto sobre fundo dourado */
+
   --font-sans: 'Inter Variable', system-ui, sans-serif;
   --font-display: 'Chakra Petch', 'Inter Variable', sans-serif;
 
@@ -41,10 +43,41 @@
   }
 }
 
+/* ------------------------------------------------------------------
+   Tema claro: branco e dourado (ativado por data-theme="light" no <html>)
+   ------------------------------------------------------------------ */
+:root[data-theme='light'] {
+  --color-ink: #faf7f0;
+  --color-surface: #ffffff;
+  --color-raised: #f4efe3;
+  --color-line: #e9e1cd;
+  --color-line-strong: #d9cca9;
+
+  --color-gold: #c8962b;
+  --color-gold-bright: #a87a1a;
+  --color-gold-deep: #8c6412;
+
+  --color-text: #1c1a16;
+  --color-muted: #625c50;
+  --color-faint: #8f887a;
+
+  --color-silver: #7f868f;
+  --color-bronze: #a5602b;
+
+  --color-win: #2f9a5c;
+  --color-loss: #c9473b;
+  --color-void: #6f7686;
+
+  --color-on-gold: #1c1a16;
+}
+
 @layer base {
   html {
     color-scheme: dark;
     -webkit-text-size-adjust: 100%;
+  }
+  html[data-theme='light'] {
+    color-scheme: light;
   }
   body {
     @apply bg-ink text-text font-sans antialiased;
@@ -62,7 +95,7 @@
   }
   ::selection {
     background: var(--color-gold);
-    color: var(--color-ink);
+    color: var(--color-on-gold);
   }
 }
 

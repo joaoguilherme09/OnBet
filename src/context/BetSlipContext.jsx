@@ -99,7 +99,7 @@ function BetSlip({ slip, onClose, onPlaced }) {
           <p className="text-xs text-muted">{event.title}</p>
           <div className="flex items-center justify-between gap-3">
             <p className="font-display text-lg font-semibold">{option.name}</p>
-            <span className="chamfer num bg-gold px-3 py-1 text-lg font-bold text-ink">{formatOdds(option.odds)}</span>
+            <span className="chamfer num bg-gold px-3 py-1 text-lg font-bold text-on-gold">{formatOdds(option.odds)}</span>
           </div>
         </div>
 

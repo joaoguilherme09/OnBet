@@ -43,14 +43,14 @@ export default function PredictionCard({ event, compact = false }) {
                 aria-label={`${o.name}, odd ${formatOdds(o.odds)}`}
                 className={`chamfer flex w-full flex-col items-center gap-0.5 px-2 py-2.5 transition-colors disabled:cursor-default ${
                   selected
-                    ? 'bg-gold text-ink'
+                    ? 'bg-gold text-on-gold'
                     : winner
                       ? 'bg-gold/15 ring-1 ring-gold'
                       : 'bg-raised enabled:hover:bg-line-strong'
                 }`}
               >
-                <span className={`w-full truncate text-center text-xs ${selected ? 'text-ink' : 'text-muted'}`}>{o.name}</span>
-                <span className={`num text-lg font-semibold ${selected ? 'text-ink' : canPick || winner ? 'text-gold-bright' : 'text-faint'}`}>
+                <span className={`w-full truncate text-center text-xs ${selected ? 'text-on-gold' : 'text-muted'}`}>{o.name}</span>
+                <span className={`num text-lg font-semibold ${selected ? 'text-on-gold' : canPick || winner ? 'text-gold-bright' : 'text-faint'}`}>
                   {formatOdds(o.odds)}
                 </span>
               </button>

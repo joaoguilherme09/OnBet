@@ -90,6 +90,19 @@ export async function updatePassword(password) {
   return authUnwrap(await sb.auth.updateUser({ password }))
 }
 
+/**
+ * Troca a senha de quem está logado. Antes confere a senha atual
+ * entrando de novo com ela; só então grava a nova.
+ */
+export async function changePassword(email, currentPassword, newPassword) {
+  const sb = requireSupabase()
+  const { error } = await sb.auth.signInWithPassword({ email, password: currentPassword })
+  if (error) {
+    throw new Error(error.code === 'invalid_credentials' ? 'Senha atual incorreta.' : authErrorMessage(error))
+  }
+  return authUnwrap(await sb.auth.updateUser({ password: newPassword }))
+}
+
 export async function getProfile(userId) {
   const sb = requireSupabase()
   return unwrap(

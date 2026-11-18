@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ChevronDown, LogOut, ShieldCheck, UserRound } from 'lucide-react'
+import { ChevronDown, LogOut, Settings, ShieldCheck, UserRound } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 
@@ -56,6 +56,9 @@ export default function UserMenu() {
         <div role="menu" className="absolute right-0 mt-2 w-52 rounded-[var(--radius-card)] border border-line bg-surface p-1.5 shadow-xl shadow-black/50">
           <Link role="menuitem" to="/perfil" className={item} onClick={() => setOpen(false)}>
             <UserRound className="h-4 w-4" aria-hidden="true" /> Meu perfil
+          </Link>
+          <Link role="menuitem" to="/configuracoes" className={item} onClick={() => setOpen(false)}>
+            <Settings className="h-4 w-4" aria-hidden="true" /> Configurações
           </Link>
           {isAdmin && (
             <Link role="menuitem" to="/admin" className={item} onClick={() => setOpen(false)}>

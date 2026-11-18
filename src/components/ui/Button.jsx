@@ -1,7 +1,7 @@
 const VARIANTS = {
   // Ação principal: dourado com corte chanfrado (assinatura da marca)
   primary:
-    'chamfer bg-gold text-ink font-display font-semibold hover:bg-gold-bright active:bg-gold-deep disabled:bg-line-strong disabled:text-faint',
+    'chamfer bg-gold text-on-gold font-display font-semibold hover:bg-gold-bright active:bg-gold-deep disabled:bg-line-strong disabled:text-faint',
   secondary:
     'rounded-lg border border-line-strong text-text hover:border-gold hover:text-gold-bright disabled:text-faint disabled:border-line',
   ghost: 'rounded-lg text-muted hover:text-text hover:bg-raised disabled:text-faint',

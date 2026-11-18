@@ -2,6 +2,7 @@ import { Suspense, lazy } from 'react'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { ToastProvider } from './context/ToastContext'
+import { ThemeProvider } from './context/ThemeContext'
 import { WalletProvider } from './context/WalletContext'
 import { BetSlipProvider } from './context/BetSlipContext'
 import { GuestOnly, RequireAdmin, RequireAuth } from './components/RouteGuards'
@@ -18,6 +19,7 @@ import Register from './pages/Register'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import Profile from './pages/Profile'
+import Settings from './pages/Settings'
 import NotFound from './pages/NotFound'
 import { Loading } from './components/ui/StateViews'
 
@@ -33,6 +35,7 @@ const AdminUsers = lazy(() => import('./pages/admin/Users'))
 export default function App() {
   return (
     <BrowserRouter>
+      <ThemeProvider>
       <ToastProvider>
         <AuthProvider>
           <WalletProvider>
@@ -60,6 +63,7 @@ export default function App() {
                     <Route path="carteira" element={<Wallet />} />
                     <Route path="historico" element={<History />} />
                     <Route path="perfil" element={<Profile />} />
+                    <Route path="configuracoes" element={<Settings />} />
                   </Route>
 
                   {/* administração */}
@@ -82,6 +86,7 @@ export default function App() {
           </WalletProvider>
         </AuthProvider>
       </ToastProvider>
+      </ThemeProvider>
     </BrowserRouter>
   )
 }

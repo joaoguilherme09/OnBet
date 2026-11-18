@@ -1,12 +1,12 @@
 import { NavLink } from 'react-router-dom'
-import { ShieldCheck } from 'lucide-react'
+import { Settings, ShieldCheck } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import Logo from './Logo'
 import { NAV_ITEMS } from './navItems'
 
 /** Navegação lateral (desktop, a partir de lg). */
 export default function Sidebar() {
-  const { isAdmin } = useAuth()
+  const { isAdmin, isAuthenticated } = useAuth()
   const items = isAdmin
     ? [...NAV_ITEMS, { to: '/admin', label: 'Administração', icon: ShieldCheck }]
     : NAV_ITEMS
@@ -37,7 +37,23 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <p className="mt-auto px-2 text-xs leading-relaxed text-faint">
+      {isAuthenticated && (
+        <NavLink
+          to="/configuracoes"
+          className={({ isActive }) =>
+            `relative mt-auto flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
+              isActive
+                ? 'bg-surface text-text before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded before:bg-gold'
+                : 'text-muted hover:bg-surface hover:text-text'
+            }`
+          }
+        >
+          <Settings className="h-4 w-4" aria-hidden="true" />
+          Configurações
+        </NavLink>
+      )}
+
+      <p className={`${isAuthenticated ? 'mt-4' : 'mt-auto'} px-2 text-xs leading-relaxed text-faint`}>
         ON Coins são pontos virtuais, sem valor em dinheiro. Não há depósitos, saques nem prêmios.
       </p>
     </aside>
