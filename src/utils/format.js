@@ -12,6 +12,23 @@ export const formatOdds = (n) => odds.format(Number(n ?? 0))
 /** Retorno total de um palpite (inclui o valor apostado). Igual ao cálculo do banco. */
 export const potentialPayout = (stake, odd) => Math.floor(Number(stake) * Number(odd))
 
+/**
+ * Odd de uma múltipla: produto das odds, arredondado em 2 casas (igual ao banco).
+ * Conta em centavos com BigInt para não errar no ponto flutuante.
+ */
+export function combinedOdds(list) {
+  if (!list.length) return 0
+  let num = 1n
+  let den = 1n
+  for (const o of list) {
+    num *= BigInt(Math.round(Number(o) * 100))
+    den *= 100n
+  }
+  // resultado em centésimos, arredondando meio para cima
+  const cents = (num * 100n * 2n + den) / (den * 2n)
+  return Number(cents) / 100
+}
+
 const dayFmt = new Intl.DateTimeFormat('pt-BR', { timeZone: TZ, weekday: 'short', day: '2-digit', month: '2-digit' })
 const timeFmt = new Intl.DateTimeFormat('pt-BR', { timeZone: TZ, hour: '2-digit', minute: '2-digit' })
 const fullFmt = new Intl.DateTimeFormat('pt-BR', { timeZone: TZ, dateStyle: 'short', timeStyle: 'short' })

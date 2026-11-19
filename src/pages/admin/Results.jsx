@@ -83,7 +83,10 @@ function SettleCard({ event, onDone }) {
   async function settle() {
     try {
       const r = await settleEvent(event.id, winner)
-      toast.success(`Evento apurado: ${r.winners} acerto(s), ${formatCoins(r.total_paid)} ON Coins creditados.`)
+      toast.success(
+        `Evento apurado: ${r.winners} acerto(s), ${formatCoins(r.total_paid)} ON Coins creditados.` +
+          (r.parlay_legs ? ` Múltiplas: ${r.parlays_won} paga(s), ${r.parlays_lost} perdida(s).` : ''),
+      )
       onDone()
     } catch (e) {
       toast.error(e.message)

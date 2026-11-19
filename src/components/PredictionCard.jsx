@@ -6,7 +6,7 @@ import { CATEGORY_LABEL, formatClosesIn, formatDateTime, formatOdds } from '../u
 
 /** Card de evento com odds clicáveis (abrem o cupom). */
 export default function PredictionCard({ event, compact = false }) {
-  const { pick, selectedOptionId } = useBetSlip()
+  const { pick, isSelected } = useBetSlip()
   const status = eventDisplayStatus(event)
   const canPick = status === 'open'
   const options = sortOptions(event.options).filter((o) => o.status === 'active' || o.id === event.winning_option_id)
@@ -33,7 +33,7 @@ export default function PredictionCard({ event, compact = false }) {
       <ul className={`grid gap-2 ${cols}`}>
         {visible.map((o) => {
           const winner = event.winning_option_id === o.id
-          const selected = selectedOptionId === o.id
+          const selected = isSelected(o.id)
           return (
             <li key={o.id}>
               <button
