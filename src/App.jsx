@@ -14,6 +14,7 @@ import EventDetail from './pages/EventDetail'
 import Wallet from './pages/Wallet'
 import Ranking from './pages/Ranking'
 import History from './pages/History'
+import MyPredictions from './pages/MyPredictions'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import ForgotPassword from './pages/ForgotPassword'
@@ -61,6 +62,7 @@ export default function App() {
                   {/* participante logado */}
                   <Route element={<RequireAuth />}>
                     <Route path="carteira" element={<Wallet />} />
+                    <Route path="meus-palpites" element={<MyPredictions />} />
                     <Route path="historico" element={<History />} />
                     <Route path="perfil" element={<Profile />} />
                     <Route path="configuracoes" element={<Settings />} />
