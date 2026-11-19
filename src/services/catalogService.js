@@ -1,7 +1,7 @@
 import { requireSupabase, unwrap } from './supabase'
 
 const MATCH_FIELDS = `
-  id, stage, scheduled_at, status, home_score, away_score,
+  id, stage, scheduled_at, status, home_score, away_score, home_penalties, away_penalties,
   competition:competitions ( id, name ),
   home:teams!matches_home_team_id_fkey ( id, name, short_name, logo_url ),
   away:teams!matches_away_team_id_fkey ( id, name, short_name, logo_url )

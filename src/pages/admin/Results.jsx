@@ -9,7 +9,7 @@ import { useAsync } from '../../hooks/useAsync'
 import { useToast } from '../../context/ToastContext'
 import { getEventSummary, listEventsAdmin, settleEvent, voidEvent } from '../../services/adminService'
 import { eventDisplayStatus } from '../../services/predictionService'
-import { CATEGORY_LABEL, formatCoins, formatDateTime, formatOdds } from '../../utils/format'
+import { CATEGORY_LABEL, formatCoins, formatDateTime, formatOdds, formatScore } from '../../utils/format'
 
 export default function Results() {
   const open = useAsync(() => listEventsAdmin({ status: 'open' }), [])
@@ -114,7 +114,7 @@ function SettleCard({ event, onDone }) {
           </p>
           {event.match?.status === 'finished' && (
             <p className="text-xs text-gold-bright">
-              Placar registrado: {event.match.home?.name} {event.match.home_score} x {event.match.away_score} {event.match.away?.name}
+              Placar registrado: {event.match.home?.name} {formatScore(event.match)} {event.match.away?.name}
             </p>
           )}
         </div>

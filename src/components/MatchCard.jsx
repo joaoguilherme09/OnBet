@@ -1,5 +1,5 @@
 import TeamBadge from './TeamBadge'
-import { formatDay, formatTime } from '../utils/format'
+import { formatDay, formatTime, hasPenalties } from '../utils/format'
 
 /**
  * Linha de confronto. Mostra horário (agendada) ou placar (finalizada).
@@ -15,11 +15,18 @@ export default function MatchCard({ match }) {
 
       <div className="w-20 shrink-0 text-center">
         {finished ? (
-          <span className="num text-lg font-semibold">
-            {match.home_score}
-            <span className="px-1 text-faint">:</span>
-            {match.away_score}
-          </span>
+          <>
+            <span className="num text-lg font-semibold">
+              {match.home_score}
+              <span className="px-1 text-faint">:</span>
+              {match.away_score}
+            </span>
+            {hasPenalties(match) && (
+              <span className="num block text-xs text-muted">
+                pên. {match.home_penalties}:{match.away_penalties}
+              </span>
+            )}
+          </>
         ) : match.scheduled_at ? (
           <>
             <span className="num block text-base font-semibold text-gold-bright">{formatTime(match.scheduled_at)}</span>
