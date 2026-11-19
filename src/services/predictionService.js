@@ -135,3 +135,90 @@ export async function getMyStats() {
   const sb = requireSupabase()
   return unwrap(await sb.rpc('get_my_stats'))
 }
+
+// Evento com a partida (times e placar) e as opções, para saber qual foi a vencedora.
+const MY_GAME_EVENT_FIELDS = `
+  id, title, category, status, closes_at, winning_option_id, void_reason,
+  match:matches (
+    id, scheduled_at, status, home_score, away_score,
+    home:teams!matches_home_team_id_fkey ( id, name, short_name, logo_url ),
+    away:teams!matches_away_team_id_fkey ( id, name, short_name, logo_url )
+  ),
+  options:prediction_options!prediction_options_event_id_fkey ( id, name )
+`
+
+/**
+ * Todos os jogos/eventos em que o participante palpitou, agrupados por evento.
+ * Junta palpites simples e palpites dentro de múltiplas.
+ * Cada item: { event, picks: [{ kind, id, option, odds, status, stake?, payout?, potential_payout?, parlay? }], status, last_at }
+ */
+export async function getMyGames({ limit = 300 } = {}) {
+  const sb = requireSupabase()
+  const [singles, legs] = await Promise.all([
+    sb
+      .from('predictions')
+      .select(
+        `id, stake, odds_snapshot, potential_payout, status, payout, created_at,
+         option:prediction_options!predictions_option_fk ( id, name ),
+         event:prediction_events!predictions_event_id_fkey ( ${MY_GAME_EVENT_FIELDS} )`,
+      )
+      .order('created_at', { ascending: false })
+      .limit(limit),
+    sb
+      .from('parlay_legs')
+      .select(
+        `status, odds_snapshot,
+         parlay:parlays ( id, status, stake, total_odds, created_at ),
+         option:prediction_options!parlay_legs_option_fk ( id, name ),
+         event:prediction_events!parlay_legs_event_id_fkey ( ${MY_GAME_EVENT_FIELDS} )`,
+      )
+      .limit(limit),
+  ])
+
+  const byEvent = new Map()
+  const add = (event, pick) => {
+    if (!event) return
+    if (!byEvent.has(event.id)) byEvent.set(event.id, { event, picks: [] })
+    byEvent.get(event.id).picks.push(pick)
+  }
+  for (const p of unwrap(singles)) {
+    add(p.event, {
+      kind: 'single',
+      id: p.id,
+      option: p.option,
+      odds: p.odds_snapshot,
+      status: p.status,
+      stake: p.stake,
+      payout: p.payout,
+      potential_payout: p.potential_payout,
+      created_at: p.created_at,
+    })
+  }
+  for (const l of unwrap(legs)) {
+    add(l.event, {
+      kind: 'parlay',
+      id: `${l.parlay?.id}:${l.event?.id}`,
+      option: l.option,
+      odds: l.odds_snapshot,
+      status: l.status,
+      parlay: l.parlay,
+      created_at: l.parlay?.created_at,
+    })
+  }
+
+  return [...byEvent.values()]
+    .map((g) => {
+      const statuses = g.picks.map((p) => p.status)
+      // resultado do jogo para o participante: acertou se algum palpite bateu
+      const status = statuses.includes('pending')
+        ? 'pending'
+        : statuses.includes('won')
+          ? 'won'
+          : statuses.includes('lost')
+            ? 'lost'
+            : 'void'
+      const last_at = g.picks.reduce((m, p) => (p.created_at > m ? p.created_at : m), '')
+      return { ...g, status, last_at }
+    })
+    .sort((a, b) => (a.last_at < b.last_at ? 1 : -1))
+}
