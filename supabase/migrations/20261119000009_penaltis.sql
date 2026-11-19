@@ -1,21 +1,22 @@
 -- =====================================================================
 -- ON BETS — Disputa de pênaltis
 -- ---------------------------------------------------------------------
--- Quando a partida termina empatada, o admin pode registrar o placar
--- dos pênaltis. Regras garantidas pelo banco:
---   - pênaltis só existem em partida finalizada e empatada;
+-- Qualquer partida finalizada pode ter disputa de pênaltis, mesmo sem
+-- empate no placar do jogo (ex.: jogo de volta que empata no agregado
+-- de ida e volta). Regras garantidas pelo banco:
+--   - pênaltis só existem em partida finalizada;
 --   - os dois lados são preenchidos juntos (ou nenhum);
 --   - pênaltis não terminam empatados.
--- O placar do tempo normal continua em home_score/away_score.
+-- O placar do jogo continua em home_score/away_score.
 -- =====================================================================
 
 alter table public.matches
   add column home_penalties smallint check (home_penalties >= 0),
   add column away_penalties smallint check (away_penalties >= 0),
   add constraint matches_penalties_both check ((home_penalties is null) = (away_penalties is null)),
-  add constraint matches_penalties_only_on_draw check (
+  add constraint matches_penalties_finished check (
     home_penalties is null
-    or (status = 'finished' and home_score = away_score and home_penalties <> away_penalties)
+    or (status = 'finished' and home_penalties <> away_penalties)
   );
 
 -- auditoria passa a registrar também os pênaltis
