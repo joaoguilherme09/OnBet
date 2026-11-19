@@ -78,7 +78,7 @@ export const listMatchesAdmin = async ({ competitionId } = {}) => {
   let q = sb()
     .from('matches')
     .select(`
-      id, competition_id, home_team_id, away_team_id, stage, scheduled_at, status, home_score, away_score,
+      id, competition_id, home_team_id, away_team_id, stage, scheduled_at, status, home_score, away_score, home_penalties, away_penalties,
       competition:competitions ( id, name ),
       home:teams!matches_home_team_id_fkey ( id, name, short_name ),
       away:teams!matches_away_team_id_fkey ( id, name, short_name ),
@@ -90,7 +90,7 @@ export const listMatchesAdmin = async ({ competitionId } = {}) => {
   return unwrap(await q)
 }
 
-export const saveMatch = async ({ id, competition_id, home_team_id, away_team_id, stage, scheduled_at, status, home_score, away_score }) => {
+export const saveMatch = async ({ id, competition_id, home_team_id, away_team_id, stage, scheduled_at, status, home_score, away_score, home_penalties, away_penalties }) => {
   const row = {
     competition_id,
     home_team_id,
@@ -100,6 +100,8 @@ export const saveMatch = async ({ id, competition_id, home_team_id, away_team_id
     status,
     home_score: home_score === '' || home_score == null ? null : Number(home_score),
     away_score: away_score === '' || away_score == null ? null : Number(away_score),
+    home_penalties: home_penalties === '' || home_penalties == null ? null : Number(home_penalties),
+    away_penalties: away_penalties === '' || away_penalties == null ? null : Number(away_penalties),
   }
   const q = id ? sb().from('matches').update(row).eq('id', id) : sb().from('matches').insert(row)
   return unwrap(await q.select().single())

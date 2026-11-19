@@ -5,7 +5,7 @@ export const EVENT_FIELDS = `
   winning_option_id, settled_at, void_reason, competition_id, match_id,
   competition:competitions ( id, name ),
   match:matches (
-    id, scheduled_at, status, home_score, away_score, stage,
+    id, scheduled_at, status, home_score, away_score, home_penalties, away_penalties, stage,
     home:teams!matches_home_team_id_fkey ( id, name, short_name, logo_url ),
     away:teams!matches_away_team_id_fkey ( id, name, short_name, logo_url )
   ),

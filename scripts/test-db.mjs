@@ -550,6 +550,32 @@ eq('saldo restaurado', await balanceOf(H), hBefore + 30)
 }
 
 // ======================================================================
+// Pênaltis
+// ======================================================================
+console.log('\nPênaltis')
+{
+  const newMatch = async () =>
+    (await one(`insert into public.matches (competition_id, home_team_id, away_team_id) values ($1,$2,$3) returning id`, [comp, milan, psv])).id
+  const pm = await newMatch()
+  await run('authenticated', ADM, `update public.matches set status = 'finished', home_score = 1, away_score = 1,
+    home_penalties = 4, away_penalties = 3 where id = $1`, [pm])
+  eq('empate decidido nos pênaltis é salvo', (await one(`select concat(home_penalties,'x',away_penalties) p from public.matches where id = $1`, [pm])).p, '4x3')
+  eq('pênaltis ficam auditados', (await one(
+    `select count(*)::int n from public.admin_audit_log where action = 'match.update' and target_id = $1 and details ? 'penalties'`, [pm])).n, 1)
+  await expectError('pênaltis em partida que não terminou empatada são recusados', () =>
+    db.query(`update public.matches set home_score = 2 where id = $1`, [pm]), /penalties_only_on_draw/)
+  await expectError('pênaltis empatados são recusados', () =>
+    db.query(`update public.matches set home_penalties = 3 where id = $1`, [pm]), /penalties_only_on_draw/)
+  await expectError('só um lado dos pênaltis é recusado', () =>
+    db.query(`update public.matches set away_penalties = null where id = $1`, [pm]), /penalties_both/)
+  const pm2 = await newMatch()
+  await expectError('pênaltis em partida não finalizada são recusados', () =>
+    db.query(`update public.matches set home_penalties = 5, away_penalties = 4 where id = $1`, [pm2]), /penalties_only_on_draw/)
+  const r = await run('authenticated', A, `update public.matches set home_penalties = 9 where id = $1 returning id`, [pm]).catch(() => ({ rows: [] }))
+  eq('participante não altera pênaltis', r.rows.length, 0)
+}
+
+// ======================================================================
 // Consistência do livro-razão
 // ======================================================================
 console.log('\nConsistência')

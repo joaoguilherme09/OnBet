@@ -14,7 +14,7 @@ import {
   getMyPredictionsForEvent,
   sortOptions,
 } from '../services/predictionService'
-import { CATEGORY_LABEL, formatClosesIn, formatDateTime, formatOdds } from '../utils/format'
+import { CATEGORY_LABEL, formatClosesIn, formatDateTime, formatOdds, formatScore } from '../utils/format'
 
 export default function EventDetail() {
   const { id } = useParams()
@@ -62,7 +62,7 @@ export default function EventDetail() {
             <TeamBadge team={e.match.home} />
           </div>
           <span className="num text-xl font-bold text-gold-bright">
-            {e.match.status === 'finished' ? `${e.match.home_score} : ${e.match.away_score}` : e.match.scheduled_at ? formatDateTime(e.match.scheduled_at) : 'x'}
+            {e.match.status === 'finished' ? formatScore(e.match, ':') : e.match.scheduled_at ? formatDateTime(e.match.scheduled_at) : 'x'}
           </span>
           <div className="flex items-center gap-3">
             <TeamBadge team={e.match.away} />

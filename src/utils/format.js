@@ -86,3 +86,13 @@ export const COMPETITION_STATUS_LABEL = {
   ongoing: 'Em andamento',
   finished: 'Encerrado',
 }
+
+/** Partida decidida nos pênaltis? */
+export const hasPenalties = (m) => m?.home_penalties != null && m?.away_penalties != null
+
+/** "2 x 1", ou "1 x 1 (4 x 3 nos pênaltis)" */
+export function formatScore(m, sep = 'x') {
+  if (!m || m.home_score == null || m.away_score == null) return ''
+  const base = `${m.home_score} ${sep} ${m.away_score}`
+  return hasPenalties(m) ? `${base} (${m.home_penalties} ${sep} ${m.away_penalties} nos pênaltis)` : base
+}

@@ -10,7 +10,7 @@ import { useAsync } from '../../hooks/useAsync'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { deleteMatch, listCompetitionsAdmin, listMatchesAdmin, listTeams, saveEvent, saveMatch } from '../../services/adminService'
-import { MATCH_STATUS_LABEL, fromLocalInput } from '../../utils/format'
+import { MATCH_STATUS_LABEL, formatScore, fromLocalInput } from '../../utils/format'
 
 export default function AdminMatches() {
   const [competitionId, setCompetitionId] = useState('')
@@ -50,7 +50,7 @@ export default function AdminMatches() {
               <li key={m.id} className="card flex flex-wrap items-center gap-3 px-4 py-3">
                 <div className="min-w-0 flex-1">
                   <p className="font-medium">
-                    {m.home?.name} {m.status === 'finished' ? `${m.home_score} x ${m.away_score}` : 'x'} {m.away?.name}
+                    {m.home?.name} {m.status === 'finished' ? formatScore(m) : 'x'} {m.away?.name}
                   </p>
                   <p className="text-xs text-muted">
                     {m.competition?.name}
@@ -114,9 +114,14 @@ function MatchModal({ match, comps, teams, onClose, onSaved }) {
     status: match.status ?? 'scheduled',
     home_score: match.home_score ?? '',
     away_score: match.away_score ?? '',
+    home_penalties: match.home_penalties ?? '',
+    away_penalties: match.away_penalties ?? '',
   })
+  const [penalties, setPenalties] = useState(match.home_penalties != null)
   const [saving, setSaving] = useState(false)
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
+  const isDraw =
+    form.status === 'finished' && form.home_score !== '' && form.away_score !== '' && Number(form.home_score) === Number(form.away_score)
 
   // times do campeonato escolhido (ou todos, se o campeonato ainda não tem times)
   const comp = comps.find((c) => c.id === form.competition_id)
@@ -126,9 +131,20 @@ function MatchModal({ match, comps, teams, onClose, onSaved }) {
   async function save() {
     if (!form.competition_id || !form.home_team_id || !form.away_team_id)
       return toast.error('Preencha campeonato e times.')
+    const withPenalties = isDraw && penalties
+    if (withPenalties) {
+      if (form.home_penalties === '' || form.away_penalties === '') return toast.error('Preencha o placar dos pênaltis.')
+      if (Number(form.home_penalties) === Number(form.away_penalties)) return toast.error('Os pênaltis não podem terminar empatados.')
+    }
     setSaving(true)
     try {
-      await saveMatch({ ...form, scheduled_at: null })
+      await saveMatch({
+        ...form,
+        scheduled_at: null,
+        // pênaltis só valem em partida finalizada e empatada
+        home_penalties: withPenalties ? form.home_penalties : null,
+        away_penalties: withPenalties ? form.away_penalties : null,
+      })
       toast.success('Partida salva.')
       onSaved()
     } catch (e) {
@@ -209,6 +225,21 @@ function MatchModal({ match, comps, teams, onClose, onSaved }) {
           <div className="grid grid-cols-2 gap-3">
             <Input label="Gols mandante" inputMode="numeric" value={form.home_score} onChange={set('home_score')} />
             <Input label="Gols visitante" inputMode="numeric" value={form.away_score} onChange={set('away_score')} />
+          </div>
+        )}
+        {/* empate: pode ter sido decidido nos pênaltis */}
+        {isDraw && (
+          <div className="space-y-3 sm:col-span-2">
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={penalties} onChange={(e) => setPenalties(e.target.checked)} className="accent-gold" />
+              Decidido nos pênaltis
+            </label>
+            {penalties && (
+              <div className="grid grid-cols-2 gap-3 sm:w-1/2">
+                <Input label="Pênaltis mandante" inputMode="numeric" value={form.home_penalties} onChange={set('home_penalties')} />
+                <Input label="Pênaltis visitante" inputMode="numeric" value={form.away_penalties} onChange={set('away_penalties')} />
+              </div>
+            )}
           </div>
         )}
       </div>
