@@ -57,6 +57,7 @@ app_settings (linha única: saldo inicial, stake mínimo e máximo)
 - **Vários palpites por evento** são permitidos, cada um entre `min_stake` e `max_stake`.
 - **Fechamento automático:** a função de palpite recusa se `now() >= closes_at`, se `now() < opens_at`, se o evento não está `open`, se a opção está inativa ou se a partida vinculada já começou. Não depende de cron.
 - **Odd congelada:** `odds_snapshot` é copiada da opção no momento do registro; mudanças posteriores de odd não afetam palpites antigos.
+- **Múltiplas:** de 2 a 10 palpites de eventos diferentes num só bilhete (`parlays` + `parlay_legs`, função `place_parlay`). A odd total é o produto das odds (2 casas) e o valor é debitado uma vez. Se **um** palpite errar, a múltipla perde na hora, mesmo com outros jogos pendentes. Se todos acertarem, paga `floor(stake × odd total)`. Evento anulado vale odd 1,00 (sai da conta); se todos forem anulados, o valor é devolvido. `settle_event`/`void_event` resolvem as múltiplas junto com os palpites simples.
 - **Apuração única:** a função trava o evento, exige status `open`/`closed`, marca vencedores (`payout = potential_payout`) e perdedores (`payout = 0`), credita retornos e muda o evento para `settled`. Índice único `(kind, reference_id)` impede creditar o mesmo palpite duas vezes.
 - **Anulação:** devolve exatamente o stake (`refund`), sem multiplicador; evento vai para `void`.
 - **Ajuste administrativo:** crédito ou débito com justificativa obrigatória, registrado em `transactions` e em `admin_audit_log`. Débito nunca deixa saldo negativo.

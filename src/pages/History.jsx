@@ -5,7 +5,7 @@ import StatusBadge from '../components/StatusBadge'
 import Button from '../components/ui/Button'
 import { EmptyState, ErrorState, SkeletonRows } from '../components/ui/StateViews'
 import { useAsync } from '../hooks/useAsync'
-import { getMyPredictions, getMyStats } from '../services/predictionService'
+import { getMyParlays, getMyPredictions, getMyStats } from '../services/predictionService'
 import { CATEGORY_LABEL, formatDateTime, formatOdds } from '../utils/format'
 
 const FILTERS = [
@@ -15,18 +15,24 @@ const FILTERS = [
   { value: 'lost', label: 'Perdedores' },
   { value: 'void', label: 'Anulados' },
 ]
+const KINDS = [
+  { value: 'single', label: 'Simples' },
+  { value: 'parlay', label: 'Múltiplas' },
+]
 const PAGE = 20
 
 export default function History() {
   const stats = useAsync(() => getMyStats(), [])
   const [status, setStatus] = useState('')
+  const [kind, setKind] = useState('single')
   const [rows, setRows] = useState([])
   const [state, setState] = useState({ loading: true, error: null, done: false })
 
   async function load(before) {
     setState((s) => ({ ...s, loading: true, error: null }))
     try {
-      const page = await getMyPredictions({ status: status || undefined, limit: PAGE, before })
+      const fetchPage = kind === 'parlay' ? getMyParlays : getMyPredictions
+      const page = await fetchPage({ status: status || undefined, limit: PAGE, before })
       setRows((r) => (before ? [...r, ...page] : page))
       setState({ loading: false, error: null, done: page.length < PAGE })
     } catch (error) {
@@ -37,7 +43,7 @@ export default function History() {
   useEffect(() => {
     setRows([])
     load()
-  }, [status]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [status, kind]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const s = stats.data
   // saldo líquido dos palpites já apurados (retornos − valor usado neles)
@@ -76,6 +82,19 @@ export default function History() {
         </dl>
       )}
 
+      <div className="inline-flex rounded-lg border border-line-strong p-1" role="group" aria-label="Tipo de palpite">
+        {KINDS.map((k) => (
+          <button
+            key={k.value}
+            onClick={() => setKind(k.value)}
+            aria-pressed={kind === k.value}
+            className={`rounded-md px-4 py-1.5 text-sm ${kind === k.value ? 'bg-gold text-on-gold' : 'text-muted hover:text-text'}`}
+          >
+            {k.label}
+          </button>
+        ))}
+      </div>
+
       <div className="flex flex-wrap gap-2">
         {FILTERS.map((f) => (
           <button
@@ -97,7 +116,13 @@ export default function History() {
         <SkeletonRows rows={5} />
       ) : !rows.length ? (
         <EmptyState
-          title={status ? 'Nenhum palpite com esse resultado.' : 'Você ainda não fez nenhum palpite.'}
+          title={
+            status
+              ? 'Nenhum palpite com esse resultado.'
+              : kind === 'parlay'
+                ? 'Você ainda não fez nenhuma múltipla.'
+                : 'Você ainda não fez nenhum palpite.'
+          }
           action={
             !status && (
               <Button as={Link} to="/palpites">
@@ -106,6 +131,12 @@ export default function History() {
             )
           }
         />
+      ) : kind === 'parlay' ? (
+        <ul className="space-y-2">
+          {rows.map((p) => (
+            <ParlayRow key={p.id} parlay={p} />
+          ))}
+        </ul>
       ) : (
         <ul className="space-y-2">
           {rows.map((p) => (
@@ -151,5 +182,54 @@ export default function History() {
         </Button>
       )}
     </div>
+  )
+}
+
+function ParlayRow({ parlay: p }) {
+  return (
+    <li className="card space-y-3 px-4 py-3">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="font-medium">
+            Múltipla de {p.legs?.length ?? 0} palpites <span className="num text-gold-bright">{formatOdds(p.total_odds)}</span>
+          </p>
+          <p className="text-xs text-muted">{formatDateTime(p.created_at)}</p>
+        </div>
+        <StatusBadge status={p.status} />
+      </div>
+      <ul className="divide-y divide-line rounded-lg bg-raised/50">
+        {p.legs?.map((l) => (
+          <li key={l.event?.id} className="flex items-center gap-3 px-3 py-2 text-sm">
+            <div className="min-w-0 flex-1">
+              <Link to={`/palpites/${l.event?.id}`} className="block truncate text-xs text-muted hover:text-gold-bright">
+                {l.event?.title}
+              </Link>
+              <p>
+                {l.option?.name} <span className="num text-gold-bright">{formatOdds(l.odds_snapshot)}</span>
+              </p>
+            </div>
+            <StatusBadge status={l.status} />
+          </li>
+        ))}
+      </ul>
+      <div className="flex justify-between text-sm">
+        <span>
+          <Coins value={p.stake} /> <span className="text-xs text-muted">usados</span>
+        </span>
+        <span className="text-xs text-muted">
+          {p.status === 'pending' ? (
+            <>
+              retorno possível <Coins value={p.potential_payout} />
+            </>
+          ) : p.status === 'lost' ? (
+            'sem retorno'
+          ) : (
+            <>
+              creditado <Coins value={p.payout} className="text-win" />
+            </>
+          )}
+        </span>
+      </div>
+    </li>
   )
 }

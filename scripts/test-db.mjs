@@ -466,6 +466,90 @@ console.log('\nFase 6 — ranking e estatísticas')
 }
 
 // ======================================================================
+// Múltiplas
+// ======================================================================
+console.log('\nMúltiplas')
+const F = await mkUser('f@test.com', 'fabio')
+const G = await mkUser('g@test.com', 'gabriel')
+const H = await mkUser('h@test.com', 'helena')
+const placeParlay = (uid, opts, stake, key = crypto.randomUUID()) =>
+  run('authenticated', uid, `select * from public.place_parlay($1::uuid[], $2, $3)`, [opts, stake, key]).then((r) => r.rows[0])
+const settle = (ev, opt) => run('authenticated', ADM, `select public.settle_event($1, $2) r`, [ev, opt]).then((r) => r.rows[0].r)
+const voidEv = (ev) => run('authenticated', ADM, `select public.void_event($1, 'Evento cancelado') r`, [ev]).then((r) => r.rows[0].r)
+const parlayOf = (id) => one(`select status, payout, total_odds, potential_payout from public.parlays where id = $1`, [id])
+
+const mA = await mkEvent({ title: 'Múltipla A', options: [['Sim', 2.0], ['Não', 1.8]] })
+const mB = await mkEvent({ title: 'Múltipla B', options: [['Sim', 3.0], ['Não', 1.3]] })
+const mC = await mkEvent({ title: 'Múltipla C', options: [['Sim', 1.5], ['Não', 2.5]] })
+const mD = await mkEvent({ title: 'Múltipla D', options: [['Sim', 2.0], ['Não', 1.9]] })
+
+const pkey = crypto.randomUUID()
+const pf = await placeParlay(F, [mA.opts[0], mB.opts[0], mC.opts[0]], 100, pkey)
+eq('odds se multiplicam (2,00 × 3,00 × 1,50 = 9,00)', pf.total_odds, '9.00')
+eq('retorno possível = 900', pf.potential_payout, 900)
+eq('valor debitado uma vez (1.000 → 900)', await balanceOf(F), 900)
+eq('3 palpites gravados na múltipla', (await one(`select count(*)::int n from public.parlay_legs where parlay_id = $1`, [pf.id])).n, 3)
+eq('mesma chave devolve a mesma múltipla', (await placeParlay(F, [mA.opts[0], mB.opts[0], mC.opts[0]], 100, pkey)).id, pf.id)
+eq('…e não cobra de novo', await balanceOf(F), 900)
+await expectError('múltipla com 1 palpite é recusada', () => placeParlay(F, [mA.opts[0]], 50), /pelo menos 2/)
+await expectError('duas opções do mesmo evento são recusadas', () => placeParlay(F, [mA.opts[0], mA.opts[1]], 50), /um palpite por evento/)
+await expectError('evento fechado na múltipla é recusado', () => placeParlay(F, [mA.opts[0], evClosed.opts[0]], 50), /não está aceitando/)
+await expectError('valor acima do saldo é recusado', () => placeParlay(H, [mA.opts[0], mB.opts[0]], 1001), /Saldo insuficiente|entre/)
+await expectError('participante não cria múltipla direto na tabela', () =>
+  as('authenticated', F, () => db.query(`insert into public.parlays (user_id, stake, total_odds, idempotency_key) values ($1, 10, 500, gen_random_uuid())`, [F])),
+  /permission denied/)
+await expectRows('outro usuário não vê a múltipla', () =>
+  as('authenticated', G, () => db.query(`select * from public.parlays`)), 0)
+await expectRows('dono vê os palpites da múltipla', () =>
+  as('authenticated', F, () => db.query(`select * from public.parlay_legs`)), 3)
+
+const pg = await placeParlay(G, [mC.opts[0], mD.opts[0]], 100)   // 1,50 × 2,00
+const ph = await placeParlay(H, [mA.opts[0], mD.opts[1]], 50)    // 2,00 × 1,90
+
+await settle(mA.id, mA.opts[0])
+eq('acertou o 1º: múltipla segue pendente', (await parlayOf(pf.id)).status, 'pending')
+const rb = await settle(mB.id, mB.opts[1])
+eq('errou o 2º: múltipla perde na hora', (await parlayOf(pf.id)).status, 'lost')
+eq('apuração informa múltiplas perdidas', rb.parlays_lost, 1)
+eq('…e nada é creditado', await balanceOf(F), 900)
+await settle(mC.id, mC.opts[0])
+eq('acerto depois do erro não ressuscita a múltipla', (await parlayOf(pf.id)).status, 'lost')
+eq('…palpite da perna fica marcado como acerto', (await one(
+  `select status from public.parlay_legs where parlay_id = $1 and event_id = $2`, [pf.id, mC.id])).status, 'won')
+
+await voidEv(mD.id)
+const rg = await parlayOf(pg.id)
+rg.status === 'won' && Number(rg.payout) === 150
+  ? ok('evento anulado vale odd 1,00 (100 × 1,50 = 150)') : fail('anulado na múltipla', JSON.stringify(rg))
+eq('saldo do vencedor (900 + 150)', await balanceOf(G), 1050)
+const rh = await parlayOf(ph.id)
+rh.status === 'won' && Number(rh.payout) === 100 ? ok('H: 1 acerto + 1 anulado paga 50 × 2,00 = 100') : fail('H', JSON.stringify(rh))
+
+const mE = await mkEvent({ title: 'Múltipla E', options: [['Sim', 2.5], ['Não', 1.5]] })
+const mF = await mkEvent({ title: 'Múltipla F', options: [['Sim', 2.0], ['Não', 1.7]] })
+const mG = await mkEvent({ title: 'Múltipla G', options: [['Sim', 1.2], ['Não', 4.0]] })
+const mH = await mkEvent({ title: 'Múltipla H', options: [['Sim', 1.2], ['Não', 4.0]] })
+const pAll = await placeParlay(G, [mE.opts[0], mF.opts[0]], 40)
+const pVoid = await placeParlay(H, [mG.opts[1], mH.opts[1]], 30)
+const before = await balanceOf(G)
+await settle(mE.id, mE.opts[0])
+await settle(mF.id, mF.opts[0])
+eq('acertou tudo: paga 40 × 5,00 = 200', (await parlayOf(pAll.id)).payout, 200)
+eq('saldo creditado', await balanceOf(G), before + 200)
+await expectError('múltipla apurada não muda mais', () =>
+  db.query(`update public.parlays set status = 'pending', payout = 0, settled_at = null where id = $1`, [pAll.id]), /já apurada/)
+const hBefore = await balanceOf(H)
+await voidEv(mG.id)
+await voidEv(mH.id)
+const rv = await parlayOf(pVoid.id)
+rv.status === 'void' && Number(rv.payout) === 30 ? ok('todos anulados: devolve o valor (30)') : fail('void total', JSON.stringify(rv))
+eq('saldo restaurado', await balanceOf(H), hBefore + 30)
+{
+  const s = (await run('authenticated', F, `select public.get_my_stats() s`)).rows[0].s
+  s.total === 1 && s.lost === 1 ? ok('estatísticas contam a múltipla como 1 palpite') : fail('stats múltipla', JSON.stringify(s))
+}
+
+// ======================================================================
 // Consistência do livro-razão
 // ======================================================================
 console.log('\nConsistência')
@@ -476,9 +560,9 @@ console.log('\nConsistência')
            (select t2.balance_after from public.transactions t2 where t2.wallet_id = w.id
              order by t2.created_at desc, t2.balance_after limit 1) as last_after
     from public.wallets w left join public.transactions t on t.wallet_id = w.id
-    where w.user_id in ($1, $2, $3)
+    where w.user_id in ($1, $2, $3, $4, $5, $6)
     group by w.id
-    having w.balance <> coalesce(sum(case when t.type = 'credit' then t.amount else -t.amount end), 0)`, [C, D, E])
+    having w.balance <> coalesce(sum(case when t.type = 'credit' then t.amount else -t.amount end), 0)`, [C, D, E, F, G, H])
   bad.rows.length === 0 ? ok('saldo = soma do extrato para todas as carteiras testadas') : fail('ledger', JSON.stringify(bad.rows))
 }
 

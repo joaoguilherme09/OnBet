@@ -19,7 +19,7 @@ import { CATEGORY_LABEL, formatClosesIn, formatDateTime, formatOdds } from '../u
 export default function EventDetail() {
   const { id } = useParams()
   const { isAuthenticated } = useAuth()
-  const { pick, placedCount } = useBetSlip()
+  const { pick, isSelected, placedCount } = useBetSlip()
   const event = useAsync(() => getEvent(id), [id])
   const dist = useAsync(() => getDistribution(id), [id, placedCount])
   const mine = useAsync(() => (isAuthenticated ? getMyPredictionsForEvent(id) : Promise.resolve([])), [id, isAuthenticated, placedCount])
@@ -76,6 +76,7 @@ export default function EventDetail() {
           const n = counts[o.id] ?? 0
           const pct = total ? Math.round((n / total) * 100) : 0
           const winner = e.winning_option_id === o.id
+          const selected = isSelected(o.id)
           return (
             <button
               key={o.id}
@@ -83,7 +84,7 @@ export default function EventDetail() {
               disabled={status !== 'open'}
               onClick={() => pick(e, o)}
               className={`card relative flex w-full items-center gap-4 overflow-hidden px-4 py-3 text-left transition-colors enabled:hover:border-gold ${
-                winner ? 'border-gold' : ''
+                winner || selected ? 'border-gold' : ''
               }`}
             >
               <span className="absolute inset-y-0 left-0 bg-gold/8" style={{ width: `${pct}%` }} aria-hidden="true" />
@@ -98,7 +99,7 @@ export default function EventDetail() {
                   {total ? `, ${pct}%` : ''}
                 </span>
               </span>
-              <span className={`chamfer num relative px-3 py-1.5 text-lg font-semibold ${status === 'open' ? 'bg-raised text-gold-bright' : 'text-faint'}`}>
+              <span className={`chamfer num relative px-3 py-1.5 text-lg font-semibold ${selected ? 'bg-gold text-on-gold' : status === 'open' ? 'bg-raised text-gold-bright' : 'text-faint'}`}>
                 {formatOdds(o.odds)}
               </span>
             </button>

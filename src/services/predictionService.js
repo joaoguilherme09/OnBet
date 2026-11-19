@@ -82,6 +82,34 @@ export async function placePrediction({ optionId, stake, idempotencyKey = newIde
   )
 }
 
+/** Registra uma múltipla (2 a 10 palpites de eventos diferentes, odds multiplicadas). */
+export async function placeParlay({ optionIds, stake, idempotencyKey = newIdempotencyKey() }) {
+  const sb = requireSupabase()
+  return unwrap(
+    await sb.rpc('place_parlay', {
+      p_option_ids: optionIds,
+      p_stake: Math.trunc(Number(stake)),
+      p_idempotency_key: idempotencyKey,
+    }),
+  )
+}
+
+const MY_PARLAY_FIELDS = `
+  id, stake, total_odds, potential_payout, status, payout, created_at, settled_at,
+  legs:parlay_legs ( status, odds_snapshot,
+    option:prediction_options!parlay_legs_option_fk ( id, name ),
+    event:prediction_events!parlay_legs_event_id_fkey ( id, title, category )
+  )
+`
+
+export async function getMyParlays({ status, limit = 30, before } = {}) {
+  const sb = requireSupabase()
+  let q = sb.from('parlays').select(MY_PARLAY_FIELDS).order('created_at', { ascending: false }).limit(limit)
+  if (status) q = q.eq('status', status)
+  if (before) q = q.lt('created_at', before)
+  return unwrap(await q)
+}
+
 const MY_PREDICTION_FIELDS = `
   id, stake, odds_snapshot, potential_payout, status, payout, created_at, settled_at,
   option:prediction_options!predictions_option_fk ( id, name ),
