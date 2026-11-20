@@ -10,7 +10,7 @@ export default function Sidebar() {
     ? [...NAV_ITEMS, { to: '/admin', label: 'Administração', icon: ShieldCheck }]
     : NAV_ITEMS
   return (
-    <aside className="sticky top-16 hidden h-[calc(100dvh-4rem)] w-60 shrink-0 flex-col overflow-y-auto border-r border-line bg-ink px-4 py-5 lg:flex">
+    <aside className="side-nav sticky top-16 hidden h-[calc(100dvh-4rem)] w-60 shrink-0 flex-col overflow-y-auto border-r border-line bg-ink px-4 py-5 lg:flex">
       <p className="px-3 text-[11px] font-semibold uppercase tracking-widest text-faint">Menu</p>
 
       <nav aria-label="Principal" className="mt-2 flex flex-col gap-1">
