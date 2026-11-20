@@ -68,9 +68,10 @@ export async function signIn({ email, password }) {
   return authUnwrap(await sb.auth.signInWithPassword({ email: email.trim(), password }))
 }
 
-export async function signOut() {
+/** options.scope: 'global' (padrão, todos os aparelhos) ou 'local' (só este). */
+export async function signOut(options) {
   const sb = requireSupabase()
-  const { error } = await sb.auth.signOut()
+  const { error } = await sb.auth.signOut(options)
   if (error) throw new Error(authErrorMessage(error))
 }
 

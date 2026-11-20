@@ -7,6 +7,7 @@ import { WalletProvider } from './context/WalletContext'
 import { BetSlipProvider } from './context/BetSlipContext'
 import { GuestOnly, RequireAdmin, RequireAuth } from './components/RouteGuards'
 import Layout from './components/Layout'
+import SessionTimeout from './components/SessionTimeout'
 import Home from './pages/Home'
 import Matches from './pages/Matches'
 import Predictions from './pages/Predictions'
@@ -39,6 +40,7 @@ export default function App() {
       <ThemeProvider>
       <ToastProvider>
         <AuthProvider>
+          <SessionTimeout />
           <WalletProvider>
             <BetSlipProvider>
               <Suspense fallback={<Loading />}>
