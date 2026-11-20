@@ -15,6 +15,7 @@ import Wallet from './pages/Wallet'
 import Ranking from './pages/Ranking'
 import History from './pages/History'
 import MyPredictions from './pages/MyPredictions'
+import Stats from './pages/Stats'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import ForgotPassword from './pages/ForgotPassword'
@@ -50,6 +51,7 @@ export default function App() {
                   <Route path="palpites" element={<Predictions />} />
                   <Route path="palpites/:id" element={<EventDetail />} />
                   <Route path="ranking" element={<Ranking />} />
+                  <Route path="estatisticas" element={<Stats />} />
 
                   {/* autenticação */}
                   <Route path="entrar" element={<Login />} />

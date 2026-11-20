@@ -12,7 +12,7 @@ import { useBetSlip } from '../context/BetSlipContext'
 import OddButton from '../components/OddButton'
 import PredictionCard from '../components/PredictionCard'
 import RankingCard from '../components/RankingCard'
-import TeamBadge from '../components/TeamBadge'
+import TeamAvatar from '../components/TeamAvatar'
 import Coins from '../components/Coins'
 import { EmptyState, ErrorState, SkeletonRows } from '../components/ui/StateViews'
 import { CATEGORY_LABEL, formatClosesIn, formatCoins, formatDay, formatOdds, formatTime, hasPenalties } from '../utils/format'
@@ -221,20 +221,6 @@ function oddLabel(event, option) {
   if (m && option.team_id === m.away?.id) return '2'
   if (m && !option.team_id && /empate/i.test(option.name)) return 'X'
   return option.name
-}
-
-/** Escudo do time quando tem imagem; senão, círculo com a inicial (sem siglas). */
-function TeamAvatar({ team, size = 'md' }) {
-  if (team?.logo_url) return <TeamBadge team={team} size={size} />
-  const box = size === 'lg' ? 'h-16 w-16 text-2xl' : size === 'sm' ? 'h-7 w-7 text-xs' : 'h-10 w-10 text-base'
-  return (
-    <span
-      aria-hidden="true"
-      className={`${box} inline-flex shrink-0 items-center justify-center rounded-full bg-linear-to-br from-gold/30 to-raised font-display font-bold uppercase text-gold-bright ring-1 ring-gold/40`}
-    >
-      {team?.name?.trim()?.[0] ?? '?'}
-    </span>
-  )
 }
 
 function SectionTitle({ id, icon: Icon, to, children }) {

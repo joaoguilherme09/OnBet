@@ -71,3 +71,20 @@ export async function getCompetitions() {
     await sb.from('competitions').select('id, name, status, starts_on, ends_on').order('created_at', { ascending: false }),
   )
 }
+
+/** Dados da página Estatísticas: todos os times e as partidas finalizadas. */
+export async function getStatsData() {
+  const sb = requireSupabase()
+  const [teams, matches] = await Promise.all([
+    sb.from('teams').select('id, name, short_name, logo_url').order('name'),
+    sb
+      .from('matches')
+      .select(
+        'id, status, home_team_id, away_team_id, home_score, away_score, home_penalties, away_penalties, scheduled_at, updated_at',
+      )
+      .eq('status', 'finished')
+      .order('updated_at', { ascending: false })
+      .limit(2000),
+  ])
+  return { teams: unwrap(teams), matches: unwrap(matches) }
+}
