@@ -102,9 +102,18 @@ const MY_PARLAY_FIELDS = `
   )
 `
 
-export async function getMyParlays({ status, limit = 30, before } = {}) {
+// Quem fez o palpite (o admin lê os palpites de todos e precisa saber de quem é cada um)
+const USER_FIELDS = 'user:profiles ( id, username, full_name )'
+
+/**
+ * Múltiplas. Participante: só vê as próprias (o banco garante).
+ * Admin: vê as de todos; userId filtra um participante e withUser traz o nome.
+ */
+export async function getMyParlays({ status, limit = 30, before, userId, withUser = false } = {}) {
   const sb = requireSupabase()
-  let q = sb.from('parlays').select(MY_PARLAY_FIELDS).order('created_at', { ascending: false }).limit(limit)
+  const fields = withUser ? `${MY_PARLAY_FIELDS}, ${USER_FIELDS}` : MY_PARLAY_FIELDS
+  let q = sb.from('parlays').select(fields).order('created_at', { ascending: false }).limit(limit)
+  if (userId) q = q.eq('user_id', userId)
   if (status) q = q.eq('status', status)
   if (before) q = q.lt('created_at', before)
   return unwrap(await q)
@@ -116,9 +125,12 @@ const MY_PREDICTION_FIELDS = `
   event:prediction_events!predictions_event_id_fkey ( id, title, category, status, closes_at, void_reason )
 `
 
-export async function getMyPredictions({ status, limit = 30, before } = {}) {
+/** Palpites simples. Mesmas regras de getMyParlays para userId e withUser. */
+export async function getMyPredictions({ status, limit = 30, before, userId, withUser = false } = {}) {
   const sb = requireSupabase()
-  let q = sb.from('predictions').select(MY_PREDICTION_FIELDS).order('created_at', { ascending: false }).limit(limit)
+  const fields = withUser ? `${MY_PREDICTION_FIELDS}, ${USER_FIELDS}` : MY_PREDICTION_FIELDS
+  let q = sb.from('predictions').select(fields).order('created_at', { ascending: false }).limit(limit)
+  if (userId) q = q.eq('user_id', userId)
   if (status) q = q.eq('status', status)
   if (before) q = q.lt('created_at', before)
   return unwrap(await q)
@@ -152,8 +164,10 @@ const MY_GAME_EVENT_FIELDS = `
  * Junta palpites simples e palpites dentro de múltiplas.
  * Cada item: { event, picks: [{ kind, id, option, odds, status, stake?, payout?, potential_payout?, parlay? }], status, last_at }
  */
-export async function getMyGames({ limit = 300 } = {}) {
+export async function getMyGames({ userId, limit = 300 } = {}) {
   const sb = requireSupabase()
+  // o admin consegue ler os palpites de todos: filtra sempre pelo próprio usuário
+  if (!userId) throw new Error('Usuário não informado.')
   const [singles, legs] = await Promise.all([
     sb
       .from('predictions')
@@ -162,16 +176,18 @@ export async function getMyGames({ limit = 300 } = {}) {
          option:prediction_options!predictions_option_fk ( id, name ),
          event:prediction_events!predictions_event_id_fkey ( ${MY_GAME_EVENT_FIELDS} )`,
       )
+      .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(limit),
     sb
       .from('parlay_legs')
       .select(
         `status, odds_snapshot,
-         parlay:parlays ( id, status, stake, total_odds, created_at ),
+         parlay:parlays!inner ( id, user_id, status, stake, total_odds, created_at ),
          option:prediction_options!parlay_legs_option_fk ( id, name ),
          event:prediction_events!parlay_legs_event_id_fkey ( ${MY_GAME_EVENT_FIELDS} )`,
       )
+      .eq('parlay.user_id', userId)
       .limit(limit),
   ])
 
