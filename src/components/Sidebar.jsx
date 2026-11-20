@@ -1,23 +1,19 @@
 import { NavLink } from 'react-router-dom'
 import { Settings, ShieldCheck } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
-import Logo from './Logo'
 import { NAV_ITEMS } from './navItems'
 
-/** Navegação lateral (desktop, a partir de lg). */
+/** Navegação lateral (desktop, a partir de lg). Fica abaixo da barra superior, que tem a logo. */
 export default function Sidebar() {
   const { isAdmin, isAuthenticated } = useAuth()
   const items = isAdmin
     ? [...NAV_ITEMS, { to: '/admin', label: 'Administração', icon: ShieldCheck }]
     : NAV_ITEMS
   return (
-    <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col overflow-y-auto border-r border-line bg-ink px-4 py-5 lg:flex">
-      <NavLink to="/" className="px-2" aria-label="ON BETS, início">
-        <Logo variant="full" />
-      </NavLink>
-      <p className="mt-2 px-2 text-xs text-muted">A central de palpites da ORG ON Camps</p>
+    <aside className="sticky top-16 hidden h-[calc(100dvh-4rem)] w-60 shrink-0 flex-col overflow-y-auto border-r border-line bg-ink px-4 py-5 lg:flex">
+      <p className="px-3 text-[11px] font-semibold uppercase tracking-widest text-faint">Menu</p>
 
-      <nav aria-label="Principal" className="mt-5 flex flex-col gap-1">
+      <nav aria-label="Principal" className="mt-2 flex flex-col gap-1">
         {items.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}

@@ -238,3 +238,25 @@ export async function getMyGames({ userId, limit = 300 } = {}) {
     })
     .sort((a, b) => (a.last_at < b.last_at ? 1 : -1))
 }
+
+/**
+ * Busca eventos pelo título (o título das partidas tem os nomes dos times).
+ * Abertos primeiro, depois aguardando resultado e apurados.
+ */
+export async function searchEvents(term, limit = 12) {
+  const sb = requireSupabase()
+  // tira caracteres que têm significado especial no filtro do PostgREST
+  const clean = String(term ?? '').replace(/[%_,()*\\]/g, ' ').trim()
+  if (clean.length < 2) return []
+  const rows = unwrap(
+    await sb
+      .from('prediction_events')
+      .select(EVENT_FIELDS)
+      .in('status', ['open', 'closed', 'settled'])
+      .ilike('title', `%${clean}%`)
+      .order('closes_at', { ascending: false })
+      .limit(limit),
+  )
+  const rank = { open: 0, soon: 1, closed: 2, settled: 3 }
+  return rows.sort((a, b) => (rank[eventDisplayStatus(a)] ?? 9) - (rank[eventDisplayStatus(b)] ?? 9))
+}

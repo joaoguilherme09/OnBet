@@ -4,7 +4,8 @@ import { ChevronDown, LogOut, Settings, ShieldCheck, UserRound } from 'lucide-re
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 
-export default function UserMenu() {
+/** onBrand: botão escuro, para ficar legível sobre a barra colorida. */
+export default function UserMenu({ onBrand = false }) {
   const { profile, user, isAdmin, signOut } = useAuth()
   const toast = useToast()
   const navigate = useNavigate()
@@ -43,7 +44,11 @@ export default function UserMenu() {
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="flex items-center gap-2 rounded-lg border border-line px-2.5 py-1.5 text-sm hover:border-line-strong"
+        className={`flex items-center gap-2 text-sm ${
+          onBrand
+            ? 'h-10 rounded-full bg-ink/85 px-1.5 text-text hover:bg-ink sm:pr-3'
+            : 'rounded-lg border border-line px-2.5 py-1.5 hover:border-line-strong'
+        }`}
       >
         <span className="chamfer flex h-7 w-7 items-center justify-center bg-raised font-display text-xs font-semibold text-gold-bright">
           {name.slice(0, 2).toUpperCase()}
