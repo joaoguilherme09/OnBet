@@ -13,6 +13,7 @@ import OddButton from '../components/OddButton'
 import PredictionCard from '../components/PredictionCard'
 import RankingCard from '../components/RankingCard'
 import TeamAvatar from '../components/TeamAvatar'
+import MatchMarketsModal from '../components/MatchMarketsModal'
 import Coins from '../components/Coins'
 import { EmptyState, ErrorState, SkeletonRows } from '../components/ui/StateViews'
 import { CATEGORY_LABEL, formatClosesIn, formatCoins, formatDay, formatOdds, formatTime, hasPenalties } from '../utils/format'
@@ -39,6 +40,7 @@ function Sportsbook() {
   const ranking = useAsync(() => getRanking(5), [placedCount])
   const highlights = useAsync(() => getHighlights(30, 10), [])
   const [category, setCategory] = useState('')
+  const [matchOpen, setMatchOpen] = useState(null) // partida com o popup de apostas aberto
 
   const open = useMemo(() => (events.data ?? []).filter((e) => isEventOpen(e)), [events.data])
   // destaque: a partida aberta que fecha primeiro (ou qualquer evento aberto)
@@ -73,7 +75,7 @@ function Sportsbook() {
         ) : events.error ? (
           <ErrorState error={events.error} onRetry={events.reload} />
         ) : (
-          <FeaturedEvent event={featured} />
+          <FeaturedEvent event={featured} onOpenMatch={setMatchOpen} />
         )}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-1 lg:grid-rows-[auto_1fr]">
           <BalanceTile />
@@ -129,7 +131,7 @@ function Sportsbook() {
                 {list.some(isMatchRow) && (
                   <ul className="overflow-hidden rounded-xl border border-line bg-surface">
                     {list.filter(isMatchRow).map((e) => (
-                      <MatchEventRow key={e.id} event={e} />
+                      <MatchEventRow key={e.id} event={e} onOpenMatch={setMatchOpen} />
                     ))}
                   </ul>
                 )}
@@ -157,7 +159,7 @@ function Sportsbook() {
             ) : (
               <ul className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6">
                 {upcoming.data.map((m) => (
-                  <UpcomingCard key={m.id} match={m} event={open.find((e) => e.match_id === m.id)} />
+                  <UpcomingCard key={m.id} match={m} event={open.find((e) => e.match_id === m.id)} onOpenMatch={setMatchOpen} />
                 ))}
               </ul>
             )}
@@ -178,7 +180,7 @@ function Sportsbook() {
             ) : (
               <ul className="space-y-2">
                 {results.data.map((m) => (
-                  <ResultCard key={m.id} match={m} />
+                  <ResultCard key={m.id} match={m} onOpenMatch={setMatchOpen} />
                 ))}
               </ul>
             )}
@@ -201,6 +203,8 @@ function Sportsbook() {
         </aside>
       </div>
 
+      {matchOpen && <MatchMarketsModal match={matchOpen} onClose={() => setMatchOpen(null)} />}
+
       <p className="text-center text-xs text-faint">
         ON Coins são pontos virtuais, sem valor em dinheiro. Não há depósitos, saques nem prêmios.
       </p>
@@ -212,6 +216,8 @@ function Sportsbook() {
 
 const activeOptions = (e) => sortOptions(e.options).filter((o) => o.status === 'active')
 const isMatchRow = (e) => e.match?.home && e.match?.away && activeOptions(e).length >= 2 && activeOptions(e).length <= 3
+// a partida do evento, com o campeonato (o popup mostra o nome do campeonato)
+const matchOf = (e) => ({ ...e.match, competition: e.match?.competition ?? e.competition })
 const closingSoon = (e) => new Date(e.closes_at).getTime() - Date.now() < SOON_MS
 
 /** Rótulos 1 / X / 2 quando as opções são mandante, empate e visitante. */
@@ -275,7 +281,7 @@ function WinsTicker({ rows }) {
 }
 
 /** Jogo em destaque: banner grande com as odds clicáveis. */
-function FeaturedEvent({ event }) {
+function FeaturedEvent({ event, onOpenMatch }) {
   const { pick, isSelected } = useBetSlip()
   if (!event) {
     return (
@@ -309,7 +315,12 @@ function FeaturedEvent({ event }) {
       </div>
 
       {m?.home && m?.away ? (
-        <Link to={`/palpites/${event.id}`} className="relative mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3 sm:gap-6">
+        <button
+          type="button"
+          onClick={() => onOpenMatch(matchOf(event))}
+          aria-label={`${m.home.name} x ${m.away.name}: ver todas as apostas`}
+          className="relative mt-5 grid w-full grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-xl transition-colors hover:bg-white/5 sm:gap-6"
+        >
           <div className="flex flex-col items-center gap-2 text-center">
             <TeamAvatar team={m.home} size="lg" />
             <h1 className="line-clamp-2 text-lg font-bold sm:text-3xl">{m.home.name}</h1>
@@ -326,7 +337,7 @@ function FeaturedEvent({ event }) {
             <TeamAvatar team={m.away} size="lg" />
             <h1 className="line-clamp-2 text-lg font-bold sm:text-3xl">{m.away.name}</h1>
           </div>
-        </Link>
+        </button>
       ) : (
         <Link to={`/palpites/${event.id}`} className="relative mt-5 block">
           <h1 className="text-2xl font-bold hover:text-gold-bright sm:text-4xl">{event.title}</h1>
@@ -350,35 +361,47 @@ function FeaturedEvent({ event }) {
         <span className="flex items-center gap-1.5">
           <Timer className="h-3.5 w-3.5" aria-hidden="true" /> {formatClosesIn(event.closes_at)}
         </span>
-        <Link to={`/palpites/${event.id}`} className="font-semibold text-gold-bright hover:underline">
-          Mais detalhes
-        </Link>
+        {m?.home && m?.away ? (
+          <button type="button" onClick={() => onOpenMatch(matchOf(event))} className="font-semibold text-gold-bright hover:underline">
+            Ver todas as apostas da partida
+          </button>
+        ) : (
+          <Link to={`/palpites/${event.id}`} className="font-semibold text-gold-bright hover:underline">
+            Mais detalhes
+          </Link>
+        )}
       </p>
     </section>
   )
 }
 
 /** Linha de partida com odds 1 X 2, como numa casa de aposta. */
-function MatchEventRow({ event }) {
+function MatchEventRow({ event, onOpenMatch }) {
   const { pick, isSelected } = useBetSlip()
   const m = event.match
   const options = activeOptions(event)
   return (
     <li className="grid grid-cols-1 gap-3 border-b border-line px-4 py-3 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_16rem] sm:items-center">
-      <Link to={`/palpites/${event.id}`} className="min-w-0 space-y-1.5 hover:text-gold-bright">
-        <p className="flex flex-wrap items-center gap-2 text-xs text-muted">
+      <button
+        type="button"
+        onClick={() => onOpenMatch(matchOf(event))}
+        aria-label={`${m.home.name} x ${m.away.name}: ver todas as apostas`}
+        className="min-w-0 space-y-1.5 text-left hover:text-gold-bright"
+      >
+        <span className="flex flex-wrap items-center gap-2 text-xs text-muted">
           <span className="truncate">{event.competition?.name ?? CATEGORY_LABEL[event.category]}</span>
           {closingSoon(event) ? <SoonBadge /> : <span className="text-faint">{formatClosesIn(event.closes_at)}</span>}
-        </p>
-        <p className="flex items-center gap-2 font-semibold">
+        </span>
+        <span className="flex items-center gap-2 font-semibold">
           <TeamAvatar team={m.home} size="sm" />
           <span className="truncate">{m.home.name}</span>
-        </p>
-        <p className="flex items-center gap-2 font-semibold">
+        </span>
+        <span className="flex items-center gap-2 font-semibold">
           <TeamAvatar team={m.away} size="sm" />
           <span className="truncate">{m.away.name}</span>
-        </p>
-      </Link>
+        </span>
+        <span className="block text-xs font-semibold text-gold-bright">Ver todas as apostas ›</span>
+      </button>
       <div className={`grid gap-2 ${options.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
         {options.map((o) => (
           <OddButton key={o.id} label={oddLabel(event, o)} odds={o.odds} selected={isSelected(o.id)} onClick={() => pick(event, o)} />
@@ -454,73 +477,76 @@ function StatTile({ icon: Icon, label, value, highlight = false }) {
   )
 }
 
-function UpcomingCard({ match: m, event }) {
-  const body = (
-    <>
-      <p className="truncate text-xs text-muted">
-        {m.competition?.name}
-        {m.stage ? `, ${m.stage}` : ''}
-      </p>
-      <div className="mt-3 flex items-center justify-between gap-2">
-        <TeamAvatar team={m.home} />
-        <div className="text-center">
-          {m.scheduled_at ? (
-            <>
-              <p className="num text-lg font-bold text-gold-bright">{formatTime(m.scheduled_at)}</p>
-              <p className="text-[11px] capitalize text-muted">{formatDay(m.scheduled_at)}</p>
-            </>
-          ) : (
-            <p className="text-xs text-muted">Data a definir</p>
-          )}
-        </div>
-        <TeamAvatar team={m.away} />
-      </div>
-      <p className="mt-2 flex justify-between gap-2 text-sm font-semibold">
-        <span className="truncate">{m.home?.name}</span>
-        <span className="truncate text-right">{m.away?.name}</span>
-      </p>
-      {event ? (
-        <span className="mt-3 block rounded-full bg-gold py-1.5 text-center font-display text-xs font-bold uppercase tracking-wide text-on-gold">
-          Apostar agora
-        </span>
-      ) : (
-        <span className="mt-3 block rounded-full bg-raised py-1.5 text-center text-xs text-muted">Apostas ainda não abertas</span>
-      )}
-    </>
-  )
+function UpcomingCard({ match: m, event, onOpenMatch }) {
   return (
     <li className="w-64 shrink-0 snap-start">
-      {event ? (
-        <Link to={`/palpites/${event.id}`} className="block h-full rounded-xl border border-line bg-surface p-4 transition-colors hover:border-gold">
-          {body}
-        </Link>
-      ) : (
-        <div className="h-full rounded-xl border border-line bg-surface p-4">{body}</div>
-      )}
+      <button
+        type="button"
+        onClick={() => onOpenMatch(m)}
+        aria-label={`${m.home?.name} x ${m.away?.name}: ver apostas`}
+        className="block h-full w-full rounded-xl border border-line bg-surface p-4 text-left transition-colors hover:border-gold"
+      >
+        <span className="block truncate text-xs text-muted">
+          {m.competition?.name}
+          {m.stage ? `, ${m.stage}` : ''}
+        </span>
+        <span className="mt-3 flex items-center justify-between gap-2">
+          <TeamAvatar team={m.home} />
+          <span className="text-center">
+            {m.scheduled_at ? (
+              <>
+                <span className="num block text-lg font-bold text-gold-bright">{formatTime(m.scheduled_at)}</span>
+                <span className="block text-[11px] capitalize text-muted">{formatDay(m.scheduled_at)}</span>
+              </>
+            ) : (
+              <span className="block text-xs text-muted">Data a definir</span>
+            )}
+          </span>
+          <TeamAvatar team={m.away} />
+        </span>
+        <span className="mt-2 flex justify-between gap-2 text-sm font-semibold">
+          <span className="truncate">{m.home?.name}</span>
+          <span className="truncate text-right">{m.away?.name}</span>
+        </span>
+        {event ? (
+          <span className="mt-3 block rounded-full bg-gold py-1.5 text-center font-display text-xs font-bold uppercase tracking-wide text-on-gold">
+            Apostar agora
+          </span>
+        ) : (
+          <span className="mt-3 block rounded-full bg-raised py-1.5 text-center text-xs text-muted">Ver apostas relacionadas</span>
+        )}
+      </button>
     </li>
   )
 }
 
-function ResultCard({ match: m }) {
+function ResultCard({ match: m, onOpenMatch }) {
   const homeWon = m.home_score > m.away_score || (m.home_score === m.away_score && hasPenalties(m) && m.home_penalties > m.away_penalties)
   const awayWon = m.away_score > m.home_score || (m.home_score === m.away_score && hasPenalties(m) && m.away_penalties > m.home_penalties)
   return (
-    <li className="rounded-xl border border-line bg-surface px-4 py-3">
-      <p className="mb-2 flex items-center justify-between gap-2 text-[11px] uppercase tracking-wide text-muted">
-        <span className="truncate">{m.competition?.name}</span>
-        <span className="shrink-0 font-semibold text-faint">Encerrado</span>
-      </p>
-      {[
-        [m.home, m.home_score, m.home_penalties, homeWon],
-        [m.away, m.away_score, m.away_penalties, awayWon],
-      ].map(([team, score, pens, won], i) => (
-        <p key={i} className={`flex items-center gap-2 py-0.5 ${won ? 'font-bold text-text' : 'text-muted'}`}>
-          <TeamAvatar team={team} size="sm" />
-          <span className="flex-1 truncate">{team?.name}</span>
-          {hasPenalties(m) && <span className="num text-xs text-faint">({pens})</span>}
-          <span className={`num w-6 text-right text-lg ${won ? 'text-gold-bright' : ''}`}>{score}</span>
-        </p>
-      ))}
+    <li>
+      <button
+        type="button"
+        onClick={() => onOpenMatch(m)}
+        aria-label={`${m.home?.name} x ${m.away?.name}: ver apostas`}
+        className="block w-full rounded-xl border border-line bg-surface px-4 py-3 text-left transition-colors hover:border-gold"
+      >
+        <span className="mb-2 flex items-center justify-between gap-2 text-[11px] uppercase tracking-wide text-muted">
+          <span className="truncate">{m.competition?.name}</span>
+          <span className="shrink-0 font-semibold text-faint">Encerrado</span>
+        </span>
+        {[
+          [m.home, m.home_score, m.home_penalties, homeWon],
+          [m.away, m.away_score, m.away_penalties, awayWon],
+        ].map(([team, score, pens, won], i) => (
+          <span key={i} className={`flex items-center gap-2 py-0.5 ${won ? 'font-bold text-text' : 'text-muted'}`}>
+            <TeamAvatar team={team} size="sm" />
+            <span className="flex-1 truncate">{team?.name}</span>
+            {hasPenalties(m) && <span className="num text-xs text-faint">({pens})</span>}
+            <span className={`num w-6 text-right text-lg ${won ? 'text-gold-bright' : ''}`}>{score}</span>
+          </span>
+        ))}
+      </button>
     </li>
   )
 }

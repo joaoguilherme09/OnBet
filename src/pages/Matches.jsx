@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import MatchCard from '../components/MatchCard'
+import MatchMarketsModal from '../components/MatchMarketsModal'
 import { Select, Tabs } from '../components/ui/Inputs'
 import { EmptyState, ErrorState, SkeletonRows } from '../components/ui/StateViews'
 import { useAsync } from '../hooks/useAsync'
@@ -10,6 +10,7 @@ import { formatDay } from '../utils/format'
 export default function Matches() {
   const [scope, setScope] = useState('upcoming')
   const [competitionId, setCompetitionId] = useState('')
+  const [selected, setSelected] = useState(null) // partida com o popup de apostas aberto
   const competitions = useAsync(() => getCompetitions(), [])
   const matches = useAsync(() => getMatches({ scope, competitionId: competitionId || undefined }), [scope, competitionId])
 
@@ -65,22 +66,31 @@ export default function Matches() {
             <section key={g.day} className="space-y-2">
               <h2 className="text-sm font-medium capitalize text-muted">{g.day}</h2>
               {g.items.map((m) => {
-                const event = (m.events ?? []).find((e) => e.status !== 'draft')
+                const events = (m.events ?? []).filter((e) => e.status !== 'draft')
+                const hasOpen = events.some((e) => e.status === 'open' && new Date(e.closes_at) > new Date())
                 return (
-                  <div key={m.id} className="space-y-1">
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setSelected(m)}
+                    className="block w-full space-y-1 rounded-[var(--radius-card)] text-left transition-transform hover:-translate-y-0.5 [&>article]:hover:border-gold"
+                    aria-label={`${m.home?.name} x ${m.away?.name}: ver apostas`}
+                  >
                     <MatchCard match={m} />
-                    {event && (
-                      <Link to={`/palpites/${event.id}`} className="block px-1 text-right text-xs text-gold hover:text-gold-bright">
-                        {event.status === 'open' && new Date(event.closes_at) > new Date() ? 'Dar palpite' : 'Ver palpites'}
-                      </Link>
-                    )}
-                  </div>
+                    <span className="block px-1 text-right text-xs font-semibold text-gold hover:text-gold-bright">
+                      {events.length
+                        ? `${hasOpen ? 'Apostar' : 'Ver apostas'} (${events.length} ${events.length === 1 ? 'mercado' : 'mercados'})`
+                        : 'Ver apostas relacionadas'}
+                    </span>
+                  </button>
                 )
               })}
             </section>
           ))}
         </div>
       )}
+
+      {selected && <MatchMarketsModal match={selected} onClose={() => setSelected(null)} />}
     </div>
   )
 }
