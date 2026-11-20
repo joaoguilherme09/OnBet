@@ -71,6 +71,37 @@
   --color-on-gold: #1c1a16;
 }
 
+/* ------------------------------------------------------------------
+   Tema eFootball: rosa, roxo e azul (data-theme="efootball" no <html>)
+   Os tokens "gold" viram o rosa de destaque; o azul entra no fundo e no foco.
+   ------------------------------------------------------------------ */
+:root[data-theme='efootball'] {
+  --color-ink: #0d0a24;        /* azul-marinho arroxeado */
+  --color-surface: #18123a;    /* cards roxos */
+  --color-raised: #231a4d;
+  --color-line: #2e2460;
+  --color-line-strong: #43357f;
+
+  --color-gold: #ff3d9a;       /* rosa */
+  --color-gold-bright: #ff7cc0;
+  --color-gold-deep: #d41f78;
+
+  --color-text: #f3f0ff;
+  --color-muted: #a99fd1;
+  --color-faint: #766ca3;
+
+  --color-silver: #c9cdee;
+  --color-bronze: #e08a5a;
+
+  --color-win: #3fd6a0;
+  --color-loss: #ff5d6c;
+  --color-void: #8f8ab5;
+
+  --color-on-gold: #0d0a24;
+
+  --color-blue: #3a8bff;       /* azul de apoio */
+}
+
 @layer base {
   html {
     color-scheme: dark;
@@ -78,6 +109,17 @@
   }
   html[data-theme='light'] {
     color-scheme: light;
+  }
+  /* brilho rosa no alto e azul embaixo, por trás de tudo */
+  html[data-theme='efootball'] body {
+    background-image:
+      radial-gradient(60rem 40rem at 0% 0%, rgb(255 61 154 / 0.14), transparent 60%),
+      radial-gradient(60rem 40rem at 100% 100%, rgb(58 139 255 / 0.16), transparent 60%),
+      linear-gradient(180deg, #0d0a24, #120c33);
+    background-attachment: fixed;
+  }
+  html[data-theme='efootball'] :focus-visible {
+    outline-color: var(--color-blue);
   }
   body {
     @apply bg-ink text-text font-sans antialiased;
