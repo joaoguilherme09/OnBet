@@ -61,8 +61,9 @@ export function AuthProvider({ children }) {
       isAdmin: profile?.role === 'admin',
       refreshProfile: () => loadProfile(session?.user.id),
       setProfile,
-      signOut: async () => {
-        await authService.signOut()
+      // scope 'local' sai só deste aparelho; o padrão ('global') sai de todos
+      signOut: async (options) => {
+        await authService.signOut(options)
         setSession(null)
         setProfile(null)
       },
