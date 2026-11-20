@@ -30,6 +30,7 @@
   --color-void: #8c93a3;
 
   --color-on-gold: #141518;    /* texto sobre fundo dourado */
+  --color-on-win: #08170f;     /* texto sobre os botões verdes (entrar/registrar) */
 
   --font-sans: 'Inter Variable', system-ui, sans-serif;
   --font-display: 'Chakra Petch', 'Inter Variable', sans-serif;
@@ -118,7 +119,8 @@
     color-scheme: dark;
     -webkit-text-size-adjust: 100%;
   }
-  html[data-theme='light'] {
+  html[data-theme='light'],
+  html[data-theme='betano'] {
     color-scheme: light;
   }
   /* luzes neon por trás de tudo: magenta no alto, azul royal no meio, ciano embaixo */
@@ -198,4 +200,35 @@ html[data-theme='efootball'] .brand-bar {
 /* brilho branco no logotipo da barra */
 html[data-theme='efootball'] .brand-bar .brand-name {
   text-shadow: 0 0 12px rgb(255 255 255 / 0.55);
+}
+
+/* ------------------------------------------------------------------
+   Tema Betano: branco como cor principal e laranja vivo de destaque
+   (data-theme="betano" no <html>). Os tokens "gold" viram o laranja.
+   Botões laranja usam texto escuro (branco sobre esse laranja fica ilegível).
+   ------------------------------------------------------------------ */
+:root[data-theme='betano'] {
+  --color-ink: #f5f6f8;        /* fundo: branco levemente acinzentado */
+  --color-surface: #ffffff;    /* cards: branco puro */
+  --color-raised: #eef0f3;
+  --color-line: #e3e6ea;
+  --color-line-strong: #cfd4da;
+
+  --color-gold: #ff6a00;       /* laranja vivo (fundos, botões, barra) */
+  --color-gold-bright: #b84300;/* laranja escuro para texto e odds */
+  --color-gold-deep: #e85d00;
+
+  --color-text: #14161a;
+  --color-muted: #5b6270;
+  --color-faint: #80879a;
+
+  --color-silver: #7c8494;
+  --color-bronze: #a5602b;
+
+  --color-win: #0b7a3d;
+  --color-loss: #d0271d;
+  --color-void: #6f7686;
+
+  --color-on-gold: #1a1205;    /* texto sobre o laranja */
+  --color-on-win: #ffffff;     /* o verde aqui é escuro: texto branco */
 }

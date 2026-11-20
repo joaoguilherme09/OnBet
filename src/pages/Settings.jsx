@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Gamepad2, Moon, Sun } from 'lucide-react'
+import { Flame, Gamepad2, Moon, Sun } from 'lucide-react'
 import Field from '../components/ui/Field'
 import Button from '../components/ui/Button'
 import { Loading } from '../components/ui/StateViews'
@@ -167,6 +167,7 @@ const THEMES = [
     icon: Gamepad2,
     swatch: ['#05071a', '#2f5bff', '#00e5ff', '#ff1f8f', '#ffb8dc'],
   },
+  { value: 'betano', label: 'Betano', desc: 'Branco e laranja', icon: Flame, swatch: ['#ffffff', '#f5f6f8', '#ff6a00'] },
 ]
 
 function ThemeSection() {
@@ -174,7 +175,7 @@ function ThemeSection() {
   return (
     <section className="card space-y-4 p-5" aria-labelledby="tema-titulo">
       <h2 id="tema-titulo" className="text-lg font-semibold">Tema</h2>
-      <div role="radiogroup" aria-labelledby="tema-titulo" className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div role="radiogroup" aria-labelledby="tema-titulo" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {THEMES.map(({ value, label, desc, icon: Icon, swatch }) => {
           const active = theme === value
           return (

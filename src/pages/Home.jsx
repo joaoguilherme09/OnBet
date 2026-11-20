@@ -434,7 +434,7 @@ function BalanceTile() {
         </p>
         <Link
           to="/cadastro"
-          className="flex h-11 items-center justify-center rounded-full bg-win font-display font-bold uppercase tracking-wide text-[#08170f] hover:brightness-110"
+          className="flex h-11 items-center justify-center rounded-full bg-win font-display font-bold uppercase tracking-wide text-on-win hover:brightness-110"
         >
           Registrar grátis
         </Link>

@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 
 const STORAGE_KEY = 'onbets-theme'
-const META_COLORS = { dark: '#141518', light: '#faf7f0', efootball: '#05071a' }
+const META_COLORS = { dark: '#141518', light: '#faf7f0', efootball: '#05071a', betano: '#ff6a00' }
 export const THEME_IDS = Object.keys(META_COLORS)
 
 const ThemeContext = createContext(null)
@@ -16,8 +16,8 @@ function readStoredTheme() {
 }
 
 /**
- * Tema da interface: "dark" (grafite e dourado, padrão), "light" (branco e dourado)
- * ou "efootball" (neon: magenta, ciano e azul royal).
+ * Tema da interface: "dark" (grafite e dourado, padrão), "light" (branco e dourado),
+ * "efootball" (neon: magenta, ciano e azul royal) ou "betano" (branco e laranja).
  */
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(readStoredTheme)

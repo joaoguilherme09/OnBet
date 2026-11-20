@@ -79,7 +79,7 @@ export default function Navbar() {
                 </Link>
                 <Link
                   to="/cadastro"
-                  className="flex h-10 items-center rounded-full bg-win px-3 font-display text-sm font-bold uppercase tracking-wide text-[#08170f] shadow-md shadow-black/30 hover:brightness-110 sm:px-5"
+                  className="flex h-10 items-center rounded-full bg-win px-3 font-display text-sm font-bold uppercase tracking-wide text-on-win shadow-md shadow-black/30 hover:brightness-110 sm:px-5"
                 >
                   Registrar
                 </Link>

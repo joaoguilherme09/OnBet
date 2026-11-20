@@ -154,7 +154,7 @@ export default function SessionTimeout() {
               markActivity(true)
               setSecondsLeft(null)
             }}
-            className="flex-1 rounded-full bg-win py-2.5 font-display font-bold uppercase tracking-wide text-[#08170f] hover:brightness-110"
+            className="flex-1 rounded-full bg-win py-2.5 font-display font-bold uppercase tracking-wide text-on-win hover:brightness-110"
           >
             Continuar conectado
           </button>
