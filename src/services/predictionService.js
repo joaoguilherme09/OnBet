@@ -260,3 +260,49 @@ export async function searchEvents(term, limit = 12) {
   const rank = { open: 0, soon: 1, closed: 2, settled: 3 }
   return rows.sort((a, b) => (rank[eventDisplayStatus(a)] ?? 9) - (rank[eventDisplayStatus(b)] ?? 9))
 }
+
+// "ADM cauã" e "ADMcaua" viram "admcaua": sem acento, espaço ou maiúscula
+const normalizeName = (s) =>
+  String(s ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+
+/** Quais times da lista este evento envolve (por time ligado à opção, partida ou nome). */
+export function eventTeams(event, teams) {
+  return teams.filter((t) => {
+    if (!t?.id) return false
+    if (event.match && (event.match.home?.id === t.id || event.match.away?.id === t.id)) return true
+    if ((event.options ?? []).some((o) => o.team_id === t.id)) return true
+    const name = normalizeName(t.name)
+    // nomes muito curtos (ex.: "PH") só valem se forem exatamente o nome de uma opção
+    if ((event.options ?? []).some((o) => normalizeName(o.name) === name)) return true
+    return name.length >= 4 && normalizeName(event.title).includes(name)
+  })
+}
+
+/**
+ * Todas as apostas de uma partida: os eventos dela (qualquer status publicado)
+ * e os eventos abertos relacionados a um dos dois times/jogadores.
+ */
+export async function getMatchMarkets(match) {
+  const sb = requireSupabase()
+  const teams = [match.home, match.away].filter(Boolean)
+  const [own, open] = await Promise.all([
+    sb
+      .from('prediction_events')
+      .select(EVENT_FIELDS)
+      .eq('match_id', match.id)
+      .neq('status', 'draft')
+      .order('created_at', { ascending: true }),
+    getEvents({ scope: 'open', limit: 100 }),
+  ])
+  const ownEvents = unwrap(own)
+  const ownIds = new Set(ownEvents.map((e) => e.id))
+  const related = open
+    .filter((e) => !ownIds.has(e.id))
+    .map((e) => ({ event: e, teams: eventTeams(e, teams) }))
+    .filter((r) => r.teams.length > 0)
+  return { own: ownEvents, related }
+}
