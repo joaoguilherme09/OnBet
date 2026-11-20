@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ChevronDown, LogOut, Settings, ShieldCheck, UserRound } from 'lucide-react'
+import { ChartColumn, ChevronDown, LogOut, Settings, ShieldCheck, UserRound } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 
@@ -61,6 +61,10 @@ export default function UserMenu({ onBrand = false }) {
         <div role="menu" className="absolute right-0 mt-2 w-52 rounded-[var(--radius-card)] border border-line bg-surface p-1.5 shadow-xl shadow-black/50">
           <Link role="menuitem" to="/perfil" className={item} onClick={() => setOpen(false)}>
             <UserRound className="h-4 w-4" aria-hidden="true" /> Meu perfil
+          </Link>
+          {/* no celular/tablet não há menu lateral: Estatísticas fica aqui (no desktop já está na lateral) */}
+          <Link role="menuitem" to="/estatisticas" className={`${item} lg:hidden`} onClick={() => setOpen(false)}>
+            <ChartColumn className="h-4 w-4" aria-hidden="true" /> Estatísticas
           </Link>
           <Link role="menuitem" to="/configuracoes" className={item} onClick={() => setOpen(false)}>
             <Settings className="h-4 w-4" aria-hidden="true" /> Configurações
