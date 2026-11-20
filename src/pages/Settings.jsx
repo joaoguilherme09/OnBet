@@ -160,7 +160,13 @@ function PasswordSection() {
 const THEMES = [
   { value: 'dark', label: 'Escuro', desc: 'Grafite e dourado', icon: Moon, swatch: ['#141518', '#1c1e22', '#d6a93f'] },
   { value: 'light', label: 'Claro', desc: 'Branco e dourado', icon: Sun, swatch: ['#faf7f0', '#ffffff', '#c8962b'] },
-  { value: 'efootball', label: 'eFootball', desc: 'Rosa, roxo e azul', icon: Gamepad2, swatch: ['#18123a', '#ff3d9a', '#3a8bff'] },
+  {
+    value: 'efootball',
+    label: 'eFootball',
+    desc: 'Neon: magenta, rosa, ciano e azul royal',
+    icon: Gamepad2,
+    swatch: ['#05071a', '#2f5bff', '#00e5ff', '#ff1f8f', '#ffb8dc'],
+  },
 ]
 
 function ThemeSection() {
