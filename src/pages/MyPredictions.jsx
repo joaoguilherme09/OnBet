@@ -7,6 +7,7 @@ import Button from '../components/ui/Button'
 import { Tabs } from '../components/ui/Inputs'
 import { EmptyState, ErrorState, SkeletonRows } from '../components/ui/StateViews'
 import { useAsync } from '../hooks/useAsync'
+import { useAuth } from '../context/AuthContext'
 import { getMyGames } from '../services/predictionService'
 import { CATEGORY_LABEL, formatDateTime, formatOdds } from '../utils/format'
 
@@ -27,7 +28,8 @@ const FILTERS = [
 ]
 
 export default function MyPredictions() {
-  const games = useAsync(() => getMyGames(), [])
+  const { user } = useAuth()
+  const games = useAsync(() => getMyGames({ userId: user?.id }), [user?.id])
   const [filter, setFilter] = useState('')
 
   const counts = useMemo(() => {

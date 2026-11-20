@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { UserRound } from 'lucide-react'
 import Coins from '../components/Coins'
 import StatusBadge from '../components/StatusBadge'
 import Button from '../components/ui/Button'
+import { Select } from '../components/ui/Inputs'
 import { EmptyState, ErrorState, SkeletonRows } from '../components/ui/StateViews'
 import { useAsync } from '../hooks/useAsync'
+import { useAuth } from '../context/AuthContext'
+import { listUsers } from '../services/adminService'
 import { getMyParlays, getMyPredictions, getMyStats } from '../services/predictionService'
 import { CATEGORY_LABEL, formatDateTime, formatOdds } from '../utils/format'
 
@@ -22,17 +26,30 @@ const KINDS = [
 const PAGE = 20
 
 export default function History() {
+  const { user, isAdmin } = useAuth()
   const stats = useAsync(() => getMyStats(), [])
+  // admin: '' = todos os participantes, ou o id de um participante
+  const [who, setWho] = useState('')
+  const users = useAsync(() => (isAdmin ? listUsers('', 200) : Promise.resolve([])), [isAdmin])
   const [status, setStatus] = useState('')
   const [kind, setKind] = useState('single')
   const [rows, setRows] = useState([])
   const [state, setState] = useState({ loading: true, error: null, done: false })
+  // as estatísticas do topo são sempre do próprio usuário
+  const showStats = !isAdmin || who === user?.id
+  const showUser = isAdmin && who !== user?.id
 
   async function load(before) {
     setState((s) => ({ ...s, loading: true, error: null }))
     try {
       const fetchPage = kind === 'parlay' ? getMyParlays : getMyPredictions
-      const page = await fetchPage({ status: status || undefined, limit: PAGE, before })
+      const page = await fetchPage({
+        status: status || undefined,
+        limit: PAGE,
+        before,
+        userId: isAdmin ? who || undefined : undefined,
+        withUser: isAdmin,
+      })
       setRows((r) => (before ? [...r, ...page] : page))
       setState({ loading: false, error: null, done: page.length < PAGE })
     } catch (error) {
@@ -43,7 +60,7 @@ export default function History() {
   useEffect(() => {
     setRows([])
     load()
-  }, [status, kind]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [status, kind, who, isAdmin]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const s = stats.data
   // saldo líquido dos palpites já apurados (retornos − valor usado neles)
@@ -53,10 +70,28 @@ export default function History() {
     <div className="mx-auto max-w-4xl space-y-6">
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold">Histórico de palpites</h1>
-        <p className="text-muted">Todos os seus palpites, com a odd registrada e o resultado.</p>
+        <p className="text-muted">
+          {isAdmin
+            ? 'Palpites dos participantes, com quem apostou, a odd registrada e o resultado.'
+            : 'Todos os seus palpites, com a odd registrada e o resultado.'}
+        </p>
       </header>
 
-      {s && (
+      {isAdmin && (
+        <Select label="Participante" className="w-full sm:w-80" value={who} onChange={(e) => setWho(e.target.value)}>
+          <option value="">Todos os participantes</option>
+          {user && <option value={user.id}>Só os meus</option>}
+          {(users.data ?? [])
+            .filter((u) => u.id !== user?.id)
+            .map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.full_name ? `${u.full_name} (@${u.username})` : `@${u.username}`}
+              </option>
+            ))}
+        </Select>
+      )}
+
+      {s && showStats && (
         <dl className="card grid grid-cols-2 gap-4 p-5 sm:grid-cols-4">
           <div>
             <dt className="text-xs text-muted">Palpites</dt>
@@ -119,12 +154,16 @@ export default function History() {
           title={
             status
               ? 'Nenhum palpite com esse resultado.'
-              : kind === 'parlay'
+              : showUser
+                ? kind === 'parlay'
+                  ? 'Nenhuma múltipla encontrada.'
+                  : 'Nenhum palpite encontrado.'
+                : kind === 'parlay'
                 ? 'Você ainda não fez nenhuma múltipla.'
                 : 'Você ainda não fez nenhum palpite.'
           }
           action={
-            !status && (
+            !status && !showUser && (
               <Button as={Link} to="/palpites">
                 Ver eventos abertos
               </Button>
@@ -134,7 +173,7 @@ export default function History() {
       ) : kind === 'parlay' ? (
         <ul className="space-y-2">
           {rows.map((p) => (
-            <ParlayRow key={p.id} parlay={p} />
+            <ParlayRow key={p.id} parlay={p} showUser={showUser} />
           ))}
         </ul>
       ) : (
@@ -142,6 +181,7 @@ export default function History() {
           {rows.map((p) => (
             <li key={p.id} className="card grid grid-cols-[1fr_auto] gap-x-4 gap-y-2 px-4 py-3 sm:grid-cols-[1fr_auto_auto_auto] sm:items-center">
               <div className="min-w-0">
+                {showUser && <UserTag user={p.user} />}
                 <Link to={`/palpites/${p.event?.id}`} className="block truncate font-medium hover:text-gold-bright">
                   {p.event?.title}
                 </Link>
@@ -185,11 +225,24 @@ export default function History() {
   )
 }
 
-function ParlayRow({ parlay: p }) {
+/** Quem fez o palpite (visível só para o admin). */
+function UserTag({ user }) {
+  if (!user) return null
+  return (
+    <p className="mb-0.5 inline-flex items-center gap-1.5 text-xs">
+      <UserRound className="h-3.5 w-3.5 text-gold" aria-hidden="true" />
+      <span className="font-medium text-gold-bright">{user.full_name || `@${user.username}`}</span>
+      {user.full_name && <span className="text-muted">@{user.username}</span>}
+    </p>
+  )
+}
+
+function ParlayRow({ parlay: p, showUser }) {
   return (
     <li className="card space-y-3 px-4 py-3">
       <div className="flex items-start justify-between gap-3">
         <div>
+          {showUser && <UserTag user={p.user} />}
           <p className="font-medium">
             Múltipla de {p.legs?.length ?? 0} palpites <span className="num text-gold-bright">{formatOdds(p.total_odds)}</span>
           </p>
