@@ -78,34 +78,39 @@
 }
 
 /* ------------------------------------------------------------------
-   Tema eFootball: rosa, roxo e azul (data-theme="efootball" no <html>)
-   Os tokens "gold" viram o rosa de destaque; o azul entra no fundo e no foco.
+   Tema eFootball: neon sobre base escura (data-theme="efootball" no <html>)
+   - fundo: azul-marinho profundo, quase preto
+   - frios (luzes e detalhes): ciano elétrico e azul royal
+   - quentes (contrastes): magenta (rosa choque) e rosa pastel claro
+   - destaques: branco puro
+   Os tokens "gold" viram o magenta de destaque e o rosa pastel dos números.
    ------------------------------------------------------------------ */
 :root[data-theme='efootball'] {
-  --color-ink: #0d0a24;        /* azul-marinho arroxeado */
-  --color-surface: #18123a;    /* cards roxos */
-  --color-raised: #231a4d;
-  --color-line: #2e2460;
-  --color-line-strong: #43357f;
+  --color-ink: #05071a;        /* azul-marinho quase preto */
+  --color-surface: #0b1030;    /* cards: marinho */
+  --color-raised: #131a47;
+  --color-line: #1d2763;
+  --color-line-strong: #2c3c8c;
 
-  --color-gold: #ff3d9a;       /* rosa */
-  --color-gold-bright: #ff7cc0;
-  --color-gold-deep: #d41f78;
+  --color-gold: #ff1f8f;       /* magenta / rosa choque */
+  --color-gold-bright: #ffb8dc;/* rosa pastel claro (números e odds) */
+  --color-gold-deep: #c8006c;
 
-  --color-text: #f3f0ff;
-  --color-muted: #a99fd1;
-  --color-faint: #766ca3;
+  --color-text: #ffffff;       /* branco puro */
+  --color-muted: #a9b3e6;
+  --color-faint: #6f7ab4;
 
-  --color-silver: #c9cdee;
-  --color-bronze: #e08a5a;
+  --color-silver: #d6ddff;
+  --color-bronze: #ff9d6b;
 
-  --color-win: #3fd6a0;
-  --color-loss: #ff5d6c;
-  --color-void: #8f8ab5;
+  --color-win: #2ef2a6;
+  --color-loss: #ff5a5a;
+  --color-void: #8a93c4;
 
-  --color-on-gold: #0d0a24;
+  --color-on-gold: #05071a;
 
-  --color-blue: #3a8bff;       /* azul de apoio */
+  --color-blue: #00e5ff;       /* ciano elétrico */
+  --color-royal: #2f5bff;      /* azul royal */
 }
 
 @layer base {
@@ -116,12 +121,13 @@
   html[data-theme='light'] {
     color-scheme: light;
   }
-  /* brilho rosa no alto e azul embaixo, por trás de tudo */
+  /* luzes neon por trás de tudo: magenta no alto, azul royal no meio, ciano embaixo */
   html[data-theme='efootball'] body {
     background-image:
-      radial-gradient(60rem 40rem at 0% 0%, rgb(255 61 154 / 0.14), transparent 60%),
-      radial-gradient(60rem 40rem at 100% 100%, rgb(58 139 255 / 0.16), transparent 60%),
-      linear-gradient(180deg, #0d0a24, #120c33);
+      radial-gradient(55rem 35rem at 0% 0%, rgb(255 31 143 / 0.16), transparent 60%),
+      radial-gradient(50rem 40rem at 60% 45%, rgb(47 91 255 / 0.10), transparent 65%),
+      radial-gradient(55rem 35rem at 100% 100%, rgb(0 229 255 / 0.13), transparent 60%),
+      linear-gradient(180deg, #05071a, #070b24);
     background-attachment: fixed;
   }
   html[data-theme='efootball'] :focus-visible {
@@ -178,4 +184,18 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ------------------------------------------------------------------
+   Tema eFootball: ajustes fora das camadas (precisam vencer as classes utilitárias)
+   ------------------------------------------------------------------ */
+/* barra superior: faixa neon azul royal → magenta → ciano, com texto branco */
+html[data-theme='efootball'] .brand-bar {
+  background-image: linear-gradient(90deg, #2f5bff 0%, #ff1f8f 55%, #0a9fd0 100%);
+  color: #ffffff;
+  box-shadow: 0 0 24px rgb(255 31 143 / 0.35), 0 1px 0 rgb(0 229 255 / 0.6);
+}
+/* brilho branco no logotipo da barra */
+html[data-theme='efootball'] .brand-bar .brand-name {
+  text-shadow: 0 0 12px rgb(255 255 255 / 0.55);
 }

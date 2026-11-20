@@ -32,12 +32,12 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 bg-linear-to-r from-gold-deep via-gold to-gold-deep text-on-gold shadow-lg shadow-black/30">
+      <header className="brand-bar sticky top-0 z-30 bg-linear-to-r from-gold-deep via-gold to-gold-deep text-on-gold shadow-lg shadow-black/30">
         <div className="flex h-16 items-center gap-3 px-3 sm:px-5">
           {/* marca */}
           <Link to="/" className="flex shrink-0 items-center gap-2.5" aria-label="ON BETS, início">
             <img src="/assets/logo-icone.webp" alt="" width="96" height="96" className="h-11 w-11 rounded-lg ring-2 ring-on-gold/20" />
-            <span className="hidden font-display text-2xl font-bold leading-none tracking-wide sm:inline">ON BETS</span>
+            <span className="brand-name hidden font-display text-2xl font-bold leading-none tracking-wide sm:inline">ON BETS</span>
           </Link>
 
           {/* pesquisa: campo no desktop, ícone no celular */}
