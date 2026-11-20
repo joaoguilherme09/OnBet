@@ -63,9 +63,37 @@ export async function signUp({ username, email, password }) {
   return { needsConfirmation: !data.session }
 }
 
-export async function signIn({ email, password }) {
+/**
+ * Entra com e-mail OU nome de usuário.
+ * Com "@" no meio é e-mail (nome de usuário não aceita "@"); senão, nome de usuário,
+ * resolvido no servidor pela Edge Function "login-usuario" (o e-mail não vem para o navegador).
+ */
+export async function signIn({ login, email, password }) {
   const sb = requireSupabase()
-  return authUnwrap(await sb.auth.signInWithPassword({ email: email.trim(), password }))
+  const value = String(login ?? email ?? '').trim()
+  if (value.includes('@') && !value.startsWith('@')) {
+    return authUnwrap(await sb.auth.signInWithPassword({ email: value, password }))
+  }
+
+  const username = value.replace(/^@/, '')
+  if (!USERNAME_RE.test(username)) throw new Error('Nome de usuário ou senha incorretos.')
+
+  const { data, error } = await sb.functions.invoke('login-usuario', { body: { username, password } })
+  if (error) {
+    // a função devolve { error: { code, message } } nos erros de login
+    let detail = null
+    try {
+      detail = (await error.context?.json?.())?.error ?? null
+    } catch {
+      /* resposta sem corpo JSON */
+    }
+    if (detail?.code === 'invalid_credentials') throw new Error('Nome de usuário ou senha incorretos.')
+    if (detail) throw new Error(authErrorMessage(detail))
+    if (error.context?.status === 404 || error.name === 'FunctionsFetchError' || error.name === 'FunctionsRelayError')
+      throw new Error('O login por nome de usuário ainda não está disponível. Entre com o seu e-mail.')
+    throw new Error(authErrorMessage(error))
+  }
+  return authUnwrap(await sb.auth.setSession({ access_token: data.access_token, refresh_token: data.refresh_token }))
 }
 
 /** options.scope: 'global' (padrão, todos os aparelhos) ou 'local' (só este). */
