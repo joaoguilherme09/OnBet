@@ -11,7 +11,7 @@ export default function Logo({ variant = 'icon', compact = false }) {
         alt="ON BETS"
         width="480"
         height="521"
-        className="h-auto w-full max-w-40 rounded-xl"
+        className="h-auto w-full max-w-28 rounded-xl"
       />
     )
   }
