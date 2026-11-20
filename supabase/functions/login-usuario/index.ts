@@ -11,8 +11,12 @@
 // Erro: { error: { code, message } } com o mesmo código para "usuário
 // não existe" e "senha errada" (não revela quais usuários existem).
 //
-// Publicar: supabase functions deploy login-usuario
-// (ou no painel: Edge Functions → Deploy a new function → colar este código)
+// Publicar: supabase functions deploy login-usuario --no-verify-jwt
+// (ou no painel: Edge Functions → Deploy a new function → Via Editor,
+//  nome "login-usuario", colar este código e DESLIGAR "Verify JWT").
+// "Verify JWT" precisa ficar desligado: o projeto usa as chaves novas
+// (sb_publishable_...), que não são JWT, e o Supabase recusaria a chamada
+// antes de chegar aqui. Não tem problema: é uma tela de login, pública.
 // =====================================================================
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4'
 
@@ -60,11 +64,12 @@ Deno.serve(async (req) => {
   const email = found?.user?.email
   if (userError || !email) return invalid()
 
-  // login de verdade, com a chave pública (vale a mesma regra do login por e-mail)
-  const anon = createClient(url, Deno.env.get('SUPABASE_ANON_KEY')!, {
+  // login de verdade, num cliente separado e descartável (a senha é conferida
+  // pelo Supabase Auth, com as mesmas regras do login por e-mail)
+  const auth = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
     auth: { persistSession: false, autoRefreshToken: false },
   })
-  const { data, error } = await anon.auth.signInWithPassword({ email, password })
+  const { data, error } = await auth.auth.signInWithPassword({ email, password })
   if (error || !data.session) {
     return json({ error: { code: error?.code ?? 'invalid_credentials', message: error?.message ?? 'Invalid login credentials' } }, 400)
   }
