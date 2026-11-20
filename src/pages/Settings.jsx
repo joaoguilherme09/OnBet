@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Moon, Sun } from 'lucide-react'
+import { Gamepad2, Moon, Sun } from 'lucide-react'
 import Field from '../components/ui/Field'
 import Button from '../components/ui/Button'
 import { Loading } from '../components/ui/StateViews'
@@ -160,6 +160,7 @@ function PasswordSection() {
 const THEMES = [
   { value: 'dark', label: 'Escuro', desc: 'Grafite e dourado', icon: Moon, swatch: ['#141518', '#1c1e22', '#d6a93f'] },
   { value: 'light', label: 'Claro', desc: 'Branco e dourado', icon: Sun, swatch: ['#faf7f0', '#ffffff', '#c8962b'] },
+  { value: 'efootball', label: 'eFootball', desc: 'Rosa, roxo e azul', icon: Gamepad2, swatch: ['#18123a', '#ff3d9a', '#3a8bff'] },
 ]
 
 function ThemeSection() {
@@ -167,7 +168,7 @@ function ThemeSection() {
   return (
     <section className="card space-y-4 p-5" aria-labelledby="tema-titulo">
       <h2 id="tema-titulo" className="text-lg font-semibold">Tema</h2>
-      <div role="radiogroup" aria-labelledby="tema-titulo" className="grid grid-cols-2 gap-3">
+      <div role="radiogroup" aria-labelledby="tema-titulo" className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {THEMES.map(({ value, label, desc, icon: Icon, swatch }) => {
           const active = theme === value
           return (

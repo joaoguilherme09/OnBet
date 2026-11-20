@@ -8,10 +8,13 @@
     <meta name="theme-color" content="#141518" />
     <meta name="description" content="ON BETS — a central de palpites da ORG ON Camps. Pontos virtuais, sem dinheiro real." />
     <script>
+      // aplica o tema salvo antes de desenhar a página (evita piscar no tema escuro)
       try {
-        if (localStorage.getItem('onbets-theme') === 'light') {
-          document.documentElement.dataset.theme = 'light'
-          document.querySelector('meta[name="theme-color"]').content = '#faf7f0'
+        var colors = { light: '#faf7f0', efootball: '#0d0a24' }
+        var t = localStorage.getItem('onbets-theme')
+        if (colors[t]) {
+          document.documentElement.dataset.theme = t
+          document.querySelector('meta[name="theme-color"]').content = colors[t]
         }
       } catch {}
     </script>

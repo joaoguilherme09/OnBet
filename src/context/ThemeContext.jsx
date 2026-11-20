@@ -1,26 +1,31 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 
 const STORAGE_KEY = 'onbets-theme'
-const META_COLORS = { dark: '#141518', light: '#faf7f0' }
+const META_COLORS = { dark: '#141518', light: '#faf7f0', efootball: '#0d0a24' }
+export const THEME_IDS = Object.keys(META_COLORS)
 
 const ThemeContext = createContext(null)
 
 function readStoredTheme() {
   try {
-    return localStorage.getItem(STORAGE_KEY) === 'light' ? 'light' : 'dark'
+    const stored = localStorage.getItem(STORAGE_KEY)
+    return THEME_IDS.includes(stored) ? stored : 'dark'
   } catch {
     return 'dark'
   }
 }
 
-/** Tema da interface: "dark" (grafite e dourado, padrão) ou "light" (branco e dourado). */
+/**
+ * Tema da interface: "dark" (grafite e dourado, padrão), "light" (branco e dourado)
+ * ou "efootball" (rosa, roxo e azul).
+ */
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(readStoredTheme)
 
   useEffect(() => {
     const root = document.documentElement
-    if (theme === 'light') root.dataset.theme = 'light'
-    else delete root.dataset.theme
+    if (theme === 'dark') delete root.dataset.theme
+    else root.dataset.theme = theme
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', META_COLORS[theme])
     try {
       localStorage.setItem(STORAGE_KEY, theme)
