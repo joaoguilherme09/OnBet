@@ -123,8 +123,16 @@ function BetSlip({ selections, onRemove, onClear, onClose, onPlaced }) {
   const max = Math.min(settings?.max_stake ?? Infinity, balance ?? Infinity)
   const closed = selections.filter((s) => !isEventOpen(s.event))
 
+  // apostas da mesma partida são correlacionadas: na múltipla, só uma por partida (o banco confere de novo)
+  const matchCount = {}
+  for (const s of selections) if (s.event.match_id) matchCount[s.event.match_id] = (matchCount[s.event.match_id] ?? 0) + 1
+  const sameMatch = isParlay ? selections.filter((s) => matchCount[s.event.match_id] > 1) : []
+
   let problem = ''
   if (closed.length) problem = closed.length === 1 ? `"${closed[0].event.title}" não aceita mais palpites. Remova do cupom.` : 'Alguns eventos não aceitam mais palpites. Remova do cupom.'
+  else if (sameMatch.length)
+    problem =
+      'Não dá para juntar duas apostas da mesma partida numa múltipla: uma depende da outra (ex.: quem vence e quem se classifica). Remova uma delas e, se quiser, faça como aposta simples.'
   else if (amount && amount < min) problem = `O mínimo é ${formatCoins(min)} ON Coins.`
   else if (amount && settings && amount > settings.max_stake) problem = `O máximo por palpite é ${formatCoins(settings.max_stake)} ON Coins.`
   else if (amount && balance != null && amount > balance) problem = 'Saldo insuficiente.'
@@ -158,10 +166,16 @@ function BetSlip({ selections, onRemove, onClear, onClose, onPlaced }) {
       <div className="space-y-5">
         <ul className="space-y-2">
           {selections.map(({ event, option }) => (
-            <li key={option.id} className="flex items-start gap-3">
+            <li
+              key={option.id}
+              className={`flex items-start gap-3 ${sameMatch.some((s) => s.option.id === option.id) ? '-mx-2 rounded-lg bg-loss/10 px-2 py-1 ring-1 ring-loss/40' : ''}`}
+            >
               <div className="min-w-0 flex-1">
                 <p className="truncate text-xs text-muted">{event.title}</p>
                 <p className="font-display font-semibold">{option.name}</p>
+                {sameMatch.some((s) => s.option.id === option.id) && (
+                  <p className="text-[11px] font-semibold text-loss">Mesma partida de outro palpite do cupom</p>
+                )}
               </div>
               <span className="chamfer num bg-raised px-2.5 py-1 font-semibold text-gold-bright">{formatOdds(option.odds)}</span>
               <button

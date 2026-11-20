@@ -493,6 +493,26 @@ eq('mesma chave devolve a mesma múltipla', (await placeParlay(F, [mA.opts[0], m
 eq('…e não cobra de novo', await balanceOf(F), 900)
 await expectError('múltipla com 1 palpite é recusada', () => placeParlay(F, [mA.opts[0]], 50), /pelo menos 2/)
 await expectError('duas opções do mesmo evento são recusadas', () => placeParlay(F, [mA.opts[0], mA.opts[1]], 50), /um palpite por evento/)
+{
+  // mesma partida, dois mercados: "quem vence" e "quem se classifica" (apostas correlacionadas)
+  const vence = await mkEvent({ matchAt: "now() + interval '1 day'", title: 'Ida e volta: quem vence' })
+  const classifica = await one(
+    `insert into public.prediction_events (category, competition_id, match_id, title, status, opens_at, closes_at)
+     values ('match', $1, $2, 'Ida e volta: quem se classifica', 'open', now() - interval '1 hour', now() + interval '1 day') returning id`,
+    [comp, vence.matchId])
+  const classMilan = (await one(`insert into public.prediction_options (event_id, name, odds, sort_order) values ($1,'Milan',1.8,1) returning id`, [classifica.id])).id
+  await one(`insert into public.prediction_options (event_id, name, odds, sort_order) values ($1,'PSV',2.0,2) returning id`, [classifica.id])
+  const I = await mkUser('i@test.com', 'iris') // usuário só deste bloco (não mexe nos saldos dos outros testes)
+  const before = await balanceOf(I)
+  await expectError('duas apostas da mesma partida na múltipla são recusadas', () =>
+    placeParlay(I, [vence.opts[0], classMilan], 50), /mesma partida/)
+  eq('…e nada é cobrado', await balanceOf(I), before)
+  const ok1 = await placeParlay(I, [vence.opts[0], mD.opts[0]], 10)
+  eq('aposta da partida + outro evento continua valendo', ok1.total_odds, '4.20')
+  const s1 = await place(I, vence.opts[0], 10)
+  const s2 = await place(I, classMilan, 10)
+  eq('as duas apostas da mesma partida valem como simples', [s1.odds_snapshot, s2.odds_snapshot].join(' e '), '2.10 e 1.80')
+}
 await expectError('evento fechado na múltipla é recusado', () => placeParlay(F, [mA.opts[0], evClosed.opts[0]], 50), /não está aceitando/)
 await expectError('valor acima do saldo é recusado', () => placeParlay(H, [mA.opts[0], mB.opts[0]], 1001), /Saldo insuficiente|entre/)
 await expectError('participante não cria múltipla direto na tabela', () =>
