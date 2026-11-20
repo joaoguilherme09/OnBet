@@ -24,7 +24,7 @@ const SORTERS = {
 }
 
 const RESULT_STYLE = {
-  W: ['V', 'bg-win text-[#08170f]', 'Vitória'],
+  W: ['V', 'bg-win text-on-win', 'Vitória'],
   D: ['E', 'bg-void text-white', 'Empate'],
   L: ['D', 'bg-loss text-white', 'Derrota'],
 }
