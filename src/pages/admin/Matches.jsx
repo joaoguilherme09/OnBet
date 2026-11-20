@@ -120,8 +120,7 @@ function MatchModal({ match, comps, teams, onClose, onSaved }) {
   const [penalties, setPenalties] = useState(match.home_penalties != null)
   const [saving, setSaving] = useState(false)
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
-  const isDraw =
-    form.status === 'finished' && form.home_score !== '' && form.away_score !== '' && Number(form.home_score) === Number(form.away_score)
+  const finished = form.status === 'finished'
 
   // times do campeonato escolhido (ou todos, se o campeonato ainda não tem times)
   const comp = comps.find((c) => c.id === form.competition_id)
@@ -131,7 +130,7 @@ function MatchModal({ match, comps, teams, onClose, onSaved }) {
   async function save() {
     if (!form.competition_id || !form.home_team_id || !form.away_team_id)
       return toast.error('Preencha campeonato e times.')
-    const withPenalties = isDraw && penalties
+    const withPenalties = finished && penalties
     if (withPenalties) {
       if (form.home_penalties === '' || form.away_penalties === '') return toast.error('Preencha o placar dos pênaltis.')
       if (Number(form.home_penalties) === Number(form.away_penalties)) return toast.error('Os pênaltis não podem terminar empatados.')
@@ -141,7 +140,7 @@ function MatchModal({ match, comps, teams, onClose, onSaved }) {
       await saveMatch({
         ...form,
         scheduled_at: null,
-        // pênaltis só valem em partida finalizada e empatada
+        // pênaltis só valem em partida finalizada
         home_penalties: withPenalties ? form.home_penalties : null,
         away_penalties: withPenalties ? form.away_penalties : null,
       })
@@ -227,8 +226,8 @@ function MatchModal({ match, comps, teams, onClose, onSaved }) {
             <Input label="Gols visitante" inputMode="numeric" value={form.away_score} onChange={set('away_score')} />
           </div>
         )}
-        {/* empate: pode ter sido decidido nos pênaltis */}
-        {isDraw && (
+        {/* qualquer partida finalizada pode ter pênaltis (ex.: empate no agregado de ida e volta) */}
+        {finished && (
           <div className="space-y-3 sm:col-span-2">
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={penalties} onChange={(e) => setPenalties(e.target.checked)} className="accent-gold" />
