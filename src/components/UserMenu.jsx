@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ChartColumn, ChevronDown, LogOut, Settings, ShieldCheck, UserRound } from 'lucide-react'
+import { ChartColumn, ChevronDown, LogOut, Settings, ShieldCheck, Trophy, UserRound } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 
@@ -62,7 +62,10 @@ export default function UserMenu({ onBrand = false }) {
           <Link role="menuitem" to="/perfil" className={item} onClick={() => setOpen(false)}>
             <UserRound className="h-4 w-4" aria-hidden="true" /> Meu perfil
           </Link>
-          {/* no celular/tablet não há menu lateral: Estatísticas fica aqui (no desktop já está na lateral) */}
+          {/* no celular/tablet não há menu lateral: Ranking e Estatísticas ficam aqui (no desktop já estão na lateral) */}
+          <Link role="menuitem" to="/ranking" className={`${item} lg:hidden`} onClick={() => setOpen(false)}>
+            <Trophy className="h-4 w-4" aria-hidden="true" /> Ranking
+          </Link>
           <Link role="menuitem" to="/estatisticas" className={`${item} lg:hidden`} onClick={() => setOpen(false)}>
             <ChartColumn className="h-4 w-4" aria-hidden="true" /> Estatísticas
           </Link>
