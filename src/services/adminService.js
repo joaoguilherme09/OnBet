@@ -82,7 +82,7 @@ export const listMatchesAdmin = async ({ competitionId } = {}) => {
       competition:competitions ( id, name ),
       home:teams!matches_home_team_id_fkey ( id, name, short_name ),
       away:teams!matches_away_team_id_fkey ( id, name, short_name ),
-      events:prediction_events ( id, status )
+      events:prediction_events ( id, status, title )
     `)
     .order('created_at', { ascending: false })
     .limit(200)
