@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Pencil, Plus, Ticket } from 'lucide-react'
+import { Pencil, Plus, Ticket, Trash2 } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import ConfirmButton from '../../components/ui/ConfirmButton'
 import Modal from '../../components/ui/Modal'
@@ -47,7 +47,7 @@ export default function AdminMatches() {
           {matches.data.map((m) => {
             const events = m.events ?? []
             // modelos que ainda não foram criados para esta partida
-            const missing = Object.entries(MARKETS).filter(([, mk]) => !events.some((e) => e.title === mk.title(m)))
+            const missing = Object.keys(MARKETS).filter((type) => !events.some((e) => MARKETS[type].titles(m).includes(e.title)))
             return (
               <li key={m.id} className="card flex flex-wrap items-center gap-3 px-4 py-3">
                 <div className="min-w-0 flex-1">
@@ -69,12 +69,11 @@ export default function AdminMatches() {
                     <Ticket className="h-4 w-4" aria-hidden="true" /> Ver eventos ({events.length})
                   </Button>
                 )}
-                {m.status === 'scheduled' &&
-                  missing.map(([type, mk]) => (
-                    <Button key={type} variant="ghost" onClick={() => setEventFor({ match: m, type })}>
-                      <Plus className="h-4 w-4" aria-hidden="true" /> {mk.button}
-                    </Button>
-                  ))}
+                {m.status === 'scheduled' && missing.length > 0 && (
+                  <Button variant="ghost" onClick={() => setEventFor({ match: m, missing })}>
+                    <Ticket className="h-4 w-4" aria-hidden="true" /> {missing.includes('1x2') ? 'Criar palpite 1X2' : 'Adicionar eventos'}
+                  </Button>
+                )}
                 <Button variant="secondary" onClick={() => setEdit(m)}>
                   <Pencil className="h-4 w-4" aria-hidden="true" /> Editar
                 </Button>
@@ -97,9 +96,9 @@ export default function AdminMatches() {
         />
       )}
       {eventFor && (
-        <MarketModal
+        <MatchEventsModal
           match={eventFor.match}
-          type={eventFor.type}
+          missing={eventFor.missing}
           onClose={() => setEventFor(null)}
           onSaved={() => {
             setEventFor(null)
@@ -257,7 +256,6 @@ function MatchModal({ match, comps, teams, onClose, onSaved }) {
   )
 }
 
-
 const GOAL_LINES = ['0.5', '1.5', '2.5', '3.5', '4.5', '5.5', '6.5', '7.5']
 // odds iniciais só de sugestão: o admin ajusta antes de abrir
 const OVER_ODDS = ['1.05', '1.25', '1.70', '2.50', '4.00', '6.50', '10.00', '15.00']
@@ -266,14 +264,14 @@ const UNDER_ODDS = ['12.00', '4.50', '2.20', '1.55', '1.25', '1.10', '1.05', '1.
 const matchName = (m) => `${m.home?.name} x ${m.away?.name}`
 
 /**
- * Modelos de evento que dá para criar com um clique a partir da partida.
- * O título identifica o modelo: assim a lista sabe quais já foram criados.
+ * Eventos que o popup da partida cria com um clique.
+ * titles: o primeiro é o título usado ao criar; os outros são nomes antigos, só para
+ * reconhecer eventos que já existem.
  */
 const MARKETS = {
   '1x2': {
-    button: 'Quem vence (1X2)',
-    modalTitle: 'Criar palpite 1X2',
-    title: (m) => matchName(m),
+    heading: 'Quem vence?',
+    titles: (m) => [matchName(m)],
     options: (m) => [
       { key: 'home', name: m.home.name, odds: '2.10', team_id: m.home_team_id },
       { key: 'draw', name: 'Empate', odds: '3.20' },
@@ -281,9 +279,8 @@ const MARKETS = {
     ],
   },
   quem_passa: {
-    button: 'Quem passa',
-    modalTitle: 'Criar palpite "quem passa"',
-    title: (m) => `${matchName(m)}: quem passa?`,
+    heading: 'Quem vai se classificar?',
+    titles: (m) => [`${matchName(m)}: quem vai se classificar?`, `${matchName(m)}: quem passa?`],
     rules: 'Vale quem se classifica, contando prorrogação e pênaltis.',
     options: (m) => [
       { key: 'home', name: m.home.name, odds: '1.80', team_id: m.home_team_id },
@@ -291,10 +288,9 @@ const MARKETS = {
     ],
   },
   gols: {
-    button: '+/- gols',
-    modalTitle: 'Criar palpite "+/- gols na partida"',
-    title: (m) => `${matchName(m)}: +/- gols na partida`,
-    rules: 'Conta o total de gols da partida (mandante + visitante). Pênaltis não contam.',
+    heading: 'Quantidade de gols na partida?',
+    titles: (m) => [`${matchName(m)}: quantidade de gols na partida?`, `${matchName(m)}: +/- gols na partida`],
+    rules: 'Conta o total de gols da partida (mandante + visitante). Pênaltis não contam. Mais de uma opção pode bater.',
     options: () => [
       ...GOAL_LINES.map((l, i) => ({ key: `over${l}`, name: `+${l} gols`, odds: OVER_ODDS[i] })),
       ...GOAL_LINES.map((l, i) => ({ key: `under${l}`, name: `-${l} gols`, odds: UNDER_ODDS[i] })),
@@ -302,76 +298,129 @@ const MARKETS = {
   },
 }
 
-function MarketModal({ match, type, onClose, onSaved }) {
+/**
+ * Popup "Criar palpite 1X2": já vem com quem vence (times, empate e odds).
+ * No final, botões para adicionar também "quem vai se classificar?" e
+ * "quantidade de gols na partida?". Salvar cria todos os eventos escolhidos.
+ */
+function MatchEventsModal({ match, missing, onClose, onSaved }) {
   const toast = useToast()
   const { user } = useAuth()
-  const market = MARKETS[type]
-  const [options, setOptions] = useState(() => market.options(match))
+  // eventos incluídos no popup, cada um com as suas opções e odds
+  const [sections, setSections] = useState(() =>
+    missing.includes('1x2') ? [{ type: '1x2', options: MARKETS['1x2'].options(match) }] : [],
+  )
   const [status, setStatus] = useState('open')
   const [closesAt, setClosesAt] = useState('')
   const [saving, setSaving] = useState(false)
 
+  const addable = missing.filter((t) => t !== '1x2' && !sections.some((s) => s.type === t))
+  const add = (type) => setSections((ss) => [...ss, { type, options: MARKETS[type].options(match) }])
+  const remove = (type) => setSections((ss) => ss.filter((s) => s.type !== type))
+  const setOdds = (type, key) => (e) => {
+    const v = e.target.value.replace(/[^\d.,]/g, '')
+    setSections((ss) =>
+      ss.map((s) => (s.type === type ? { ...s, options: s.options.map((o) => (o.key === key ? { ...o, odds: v } : o)) } : s)),
+    )
+  }
+
   async function save() {
+    if (!sections.length) return toast.error('Adicione pelo menos um evento.')
     if (!closesAt) return toast.error('Informe até quando os palpites ficam abertos.')
-    if (options.some((o) => !(Number(String(o.odds).replace(',', '.')) >= 1.01))) return toast.error('As odds precisam ser no mínimo 1,01.')
+    if (sections.some((s) => s.options.some((o) => !(Number(String(o.odds).replace(',', '.')) >= 1.01))))
+      return toast.error('As odds precisam ser no mínimo 1,01.')
     setSaving(true)
+    let created = 0
     try {
-      await saveEvent(
-        {
-          category: 'match',
-          competition_id: match.competition_id,
-          match_id: match.id,
-          title: market.title(match),
-          rules: market.rules,
-          status,
-          opens_at: new Date().toISOString(),
-          closes_at: fromLocalInput(closesAt),
-        },
-        options.map(({ name, odds, team_id }) => ({ name, odds, team_id, status: 'active' })),
-        [],
-        user.id,
-      )
-      toast.success(status === 'open' ? 'Palpites abertos para a partida.' : 'Evento salvo como rascunho.')
+      for (const s of sections) {
+        const market = MARKETS[s.type]
+        await saveEvent(
+          {
+            category: 'match',
+            competition_id: match.competition_id,
+            match_id: match.id,
+            title: market.titles(match)[0],
+            rules: market.rules,
+            status,
+            opens_at: new Date().toISOString(),
+            closes_at: fromLocalInput(closesAt),
+          },
+          s.options.map(({ name, odds, team_id }) => ({ name, odds, team_id, status: 'active' })),
+          [],
+          user.id,
+        )
+        created += 1
+      }
+      const what = created === 1 ? 'Evento' : `${created} eventos`
+      toast.success(status === 'open' ? `${what} aberto(s) para palpites.` : `${what} salvo(s) como rascunho.`)
       onSaved()
     } catch (e) {
-      toast.error(e.message)
+      // os que já foram criados ficam: recarrega a lista para não duplicar
+      toast.error(created ? `${created} evento(s) criado(s), mas houve um erro: ${e.message}` : e.message)
+      if (created) onSaved()
     } finally {
       setSaving(false)
     }
   }
 
-  const setOdds = (key) => (e) => {
-    const v = e.target.value.replace(/[^\d.,]/g, '')
-    setOptions((os) => os.map((o) => (o.key === key ? { ...o, odds: v } : o)))
-  }
+  const gridFor = (s) => (s.type === 'gols' ? 'grid-cols-2 sm:grid-cols-4' : s.options.length === 3 ? 'grid-cols-3' : 'grid-cols-2')
 
   return (
     <Modal
       open
       onClose={onClose}
-      title={market.modalTitle}
-      size={type === 'gols' ? 'md' : 'sm'}
+      title={missing.includes('1x2') ? 'Criar palpite 1X2' : 'Adicionar eventos'}
+      size={sections.some((s) => s.type === 'gols') ? 'lg' : 'md'}
       footer={
-        <Button onClick={save} disabled={saving}>
+        <Button onClick={save} disabled={saving || !sections.length}>
           {saving ? 'Salvando…' : status === 'open' ? 'Abrir palpites' : 'Salvar rascunho'}
         </Button>
       }
     >
       <div className="space-y-4">
         <p className="text-sm text-muted">
-          {matchName(match)}. Os palpites ficam abertos até o prazo abaixo, ou até você marcar a partida como "ao vivo" ou
-          "finalizada".
+          {matchName(match)}. Os palpites ficam abertos até o prazo abaixo, ou até você marcar a partida como &quot;ao vivo&quot; ou
+          &quot;finalizada&quot;.
         </p>
         <Input label="Palpites fecham em" type="datetime-local" value={closesAt} onChange={(e) => setClosesAt(e.target.value)} />
-        <div className={`grid gap-3 ${type === 'gols' ? 'grid-cols-2 sm:grid-cols-4' : options.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
-          {options.map((o) => (
-            <Input key={o.key} label={o.name} inputMode="decimal" value={o.odds} onChange={setOdds(o.key)} />
-          ))}
-        </div>
+
+        {sections.map((s) => (
+          <section key={s.type} className="space-y-3 rounded-lg border border-line p-3">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-sm font-semibold">{MARKETS[s.type].heading}</h3>
+              {s.type !== '1x2' && (
+                <button
+                  type="button"
+                  onClick={() => remove(s.type)}
+                  className="p-1 text-muted hover:text-loss"
+                  aria-label={`Remover ${MARKETS[s.type].heading}`}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            <div className={`grid gap-3 ${gridFor(s)}`}>
+              {s.options.map((o) => (
+                <Input key={o.key} label={o.name} inputMode="decimal" value={o.odds} onChange={setOdds(s.type, o.key)} />
+              ))}
+            </div>
+          </section>
+        ))}
+
         <Select label="Publicação" value={status} onChange={(e) => setStatus(e.target.value)}>
           <option value="open">Abrir agora</option>
           <option value="draft">Salvar como rascunho</option>
         </Select>
+
+        {addable.length > 0 && (
+          <div className="flex flex-col gap-2 border-t border-line pt-4 sm:flex-row sm:flex-wrap">
+            {addable.map((t) => (
+              <Button key={t} type="button" variant="secondary" onClick={() => add(t)}>
+                <Plus className="h-4 w-4" aria-hidden="true" /> Adicionar evento &quot;{MARKETS[t].heading}&quot;
+              </Button>
+            ))}
+          </div>
+        )}
       </div>
     </Modal>
   )
