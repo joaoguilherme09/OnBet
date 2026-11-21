@@ -32,28 +32,37 @@ export default function MyPredictions() {
   const games = useAsync(() => getMyGames({ userId: user?.id }), [user?.id])
   const [filter, setFilter] = useState('')
 
+  // um card por aposta (não por jogo): apostar em A e em B no mesmo jogo gera dois cards
+  const bets = useMemo(
+    () =>
+      (games.data ?? [])
+        .flatMap((g) => g.picks.map((pick) => ({ event: g.event, pick })))
+        .sort((a, b) => ((a.pick.created_at ?? '') < (b.pick.created_at ?? '') ? 1 : -1)),
+    [games.data],
+  )
+
   const counts = useMemo(() => {
     const c = { '': 0, pending: 0, won: 0, lost: 0, void: 0 }
-    for (const g of games.data ?? []) {
+    for (const b of bets) {
       c[''] += 1
-      c[g.status] += 1
+      c[b.pick.status] = (c[b.pick.status] ?? 0) + 1
     }
     return c
-  }, [games.data])
+  }, [bets])
 
-  const list = (games.data ?? []).filter((g) => !filter || g.status === filter)
+  const list = bets.filter((b) => !filter || b.pick.status === filter)
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold">Meus palpites</h1>
-        <p className="text-muted">Os jogos em que você palpitou, o resultado oficial e se o seu palpite bateu.</p>
+        <p className="text-muted">Cada aposta que você fez, com o placar, a opção escolhida e se ela bateu.</p>
       </header>
 
-      {games.data && games.data.length > 0 && (
+      {bets.length > 0 && (
         <dl className="card grid grid-cols-2 gap-4 p-5 sm:grid-cols-4">
           <div>
-            <dt className="text-xs text-muted">Jogos</dt>
+            <dt className="text-xs text-muted">Apostas</dt>
             <dd className="num text-2xl font-semibold">{counts['']}</dd>
           </div>
           <div>
@@ -79,7 +88,7 @@ export default function MyPredictions() {
         <ErrorState error={games.error} onRetry={games.reload} />
       ) : !list.length ? (
         <EmptyState
-          title={filter ? 'Nenhum jogo com esse resultado.' : 'Você ainda não palpitou em nenhum jogo.'}
+          title={filter ? 'Nenhuma aposta com esse resultado.' : 'Você ainda não fez nenhuma aposta.'}
           action={
             !filter && (
               <Button as={Link} to="/palpites">
@@ -90,8 +99,8 @@ export default function MyPredictions() {
         />
       ) : (
         <ul className="space-y-3">
-          {list.map((g) => (
-            <GameRow key={g.event.id} game={g} />
+          {list.map((b) => (
+            <BetCard key={b.pick.id} event={b.event} pick={b.pick} />
           ))}
         </ul>
       )}
@@ -110,14 +119,21 @@ function ResultBadge({ status, className = '' }) {
   )
 }
 
-function GameRow({ game }) {
-  const { event, picks, status } = game
+const CARD_TONE = {
+  won: 'border-l-4 border-l-win',
+  lost: 'border-l-4 border-l-loss',
+  void: 'border-l-4 border-l-void',
+  pending: 'border-l-4 border-l-gold',
+}
+
+function BetCard({ event, pick }) {
   const match = event.match
   const winner = event.options?.find((o) => o.id === event.winning_option_id)
   const hasScore = match && match.home_score != null && match.away_score != null
+  const isSingle = pick.kind === 'single'
 
   return (
-    <li className="card space-y-3 p-4">
+    <li className={`card space-y-3 p-4 ${CARD_TONE[pick.status] ?? CARD_TONE.pending}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-xs text-muted">
@@ -142,11 +158,49 @@ function GameRow({ game }) {
             {event.title}
           </Link>
         </div>
-        <ResultBadge status={status} />
+        <ResultBadge status={pick.status} />
+      </div>
+
+      <div className="rounded-lg bg-raised/50 px-3 py-2.5 text-sm">
+        <p>
+          <span className="text-muted">Sua aposta: </span>
+          <span className="font-semibold">{pick.option?.name}</span>
+        </p>
+        <dl className="mt-2 grid grid-cols-3 gap-2">
+          <div>
+            <dt className="text-xs text-muted">Apostado</dt>
+            <dd className="font-medium">
+              <Coins value={isSingle ? pick.stake : pick.parlay?.stake} />
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted">Odd</dt>
+            <dd className="num font-medium text-gold-bright">{formatOdds(pick.odds)}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted">{isSingle && pick.status !== 'pending' ? 'Retorno' : 'Retorno possível'}</dt>
+            <dd className="font-medium">
+              {!isSingle ? (
+                <span className="text-muted">ver múltipla</span>
+              ) : pick.status === 'pending' ? (
+                <Coins value={pick.potential_payout} />
+              ) : pick.status === 'lost' ? (
+                <span className="text-loss">sem retorno</span>
+              ) : (
+                <Coins value={pick.payout} className="text-win" />
+              )}
+            </dd>
+          </div>
+        </dl>
+        {!isSingle && (
+          <p className="mt-2 text-xs text-muted">
+            Dentro de uma múltipla de odd {formatOdds(pick.parlay?.total_odds)}: o valor apostado é o da múltipla inteira.
+          </p>
+        )}
       </div>
 
       <p className="text-sm">
-        <span className="text-muted">Resultado oficial: </span>
+        <span className="text-muted">Resultado do evento: </span>
         {event.status === 'settled' && winner ? (
           <span className="font-medium">{winner.name}</span>
         ) : event.status === 'void' ? (
@@ -155,43 +209,6 @@ function GameRow({ game }) {
           <span className="text-muted">ainda não definido</span>
         )}
       </p>
-
-      <ul className="divide-y divide-line rounded-lg bg-raised/50">
-        {picks.map((p) => (
-          <li key={p.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-sm">
-            <div className="min-w-0 flex-1">
-              <p>
-                <span className="text-muted">Seu palpite: </span>
-                <span className="font-medium">{p.option?.name}</span>{' '}
-                <span className="num text-gold-bright">{formatOdds(p.odds)}</span>
-              </p>
-              <p className="text-xs text-muted">
-                {p.kind === 'single' ? (
-                  <>
-                    Simples, <Coins value={p.stake} /> usados
-                    {p.status === 'pending' ? (
-                      <>
-                        , retorno possível <Coins value={p.potential_payout} />
-                      </>
-                    ) : p.status === 'lost' ? (
-                      ', sem retorno'
-                    ) : (
-                      <>
-                        , creditado <Coins value={p.payout} className="text-win" />
-                      </>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    Dentro de uma múltipla ({formatOdds(p.parlay?.total_odds)}, <Coins value={p.parlay?.stake} /> usados)
-                  </>
-                )}
-              </p>
-            </div>
-            <ResultBadge status={p.status} />
-          </li>
-        ))}
-      </ul>
     </li>
   )
 }
