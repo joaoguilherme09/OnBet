@@ -183,7 +183,7 @@ export async function getMyGames({ userId, limit = 300 } = {}) {
       .from('parlay_legs')
       .select(
         `status, odds_snapshot,
-         parlay:parlays!inner ( id, user_id, status, stake, total_odds, created_at ),
+         parlay:parlays!inner ( id, user_id, status, stake, total_odds, potential_payout, payout, created_at ),
          option:prediction_options!parlay_legs_option_fk ( id, name ),
          event:prediction_events!parlay_legs_event_id_fkey ( ${MY_GAME_EVENT_FIELDS} )`,
       )
