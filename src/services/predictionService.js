@@ -2,7 +2,7 @@ import { newIdempotencyKey, requireSupabase, unwrap } from './supabase'
 
 export const EVENT_FIELDS = `
   id, title, description, rules, category, status, opens_at, closes_at,
-  winning_option_id, settled_at, void_reason, competition_id, match_id,
+  winning_option_id, winning_option_ids, settled_at, void_reason, competition_id, match_id,
   competition:competitions ( id, name ),
   match:matches (
     id, scheduled_at, status, home_score, away_score, home_penalties, away_penalties, stage,
@@ -37,6 +37,12 @@ export function eventDisplayStatus(event) {
 
 export const sortOptions = (options = []) =>
   [...options].sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
+
+/** Opções vencedoras do evento (pode haver mais de uma, ex.: +/- gols). Eventos antigos só têm winning_option_id. */
+export const winningIds = (event) =>
+  event?.winning_option_ids?.length ? event.winning_option_ids : event?.winning_option_id ? [event.winning_option_id] : []
+
+export const isWinner = (event, optionId) => winningIds(event).includes(optionId)
 
 /**
  * Lista eventos públicos.
@@ -150,13 +156,13 @@ export async function getMyStats() {
 
 // Evento com a partida (times e placar) e as opções, para saber qual foi a vencedora.
 const MY_GAME_EVENT_FIELDS = `
-  id, title, category, status, closes_at, winning_option_id, void_reason,
+  id, title, category, status, closes_at, winning_option_id, winning_option_ids, void_reason,
   match:matches (
     id, scheduled_at, status, home_score, away_score,
     home:teams!matches_home_team_id_fkey ( id, name, short_name, logo_url ),
     away:teams!matches_away_team_id_fkey ( id, name, short_name, logo_url )
   ),
-  options:prediction_options!prediction_options_event_id_fkey ( id, name )
+  options:prediction_options!prediction_options_event_id_fkey ( id, name, sort_order )
 `
 
 /**

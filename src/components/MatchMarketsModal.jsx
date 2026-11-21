@@ -7,7 +7,7 @@ import TeamAvatar from './TeamAvatar'
 import { EmptyState, ErrorState, SkeletonRows } from './ui/StateViews'
 import { useAsync } from '../hooks/useAsync'
 import { useBetSlip } from '../context/BetSlipContext'
-import { eventDisplayStatus, getMatchMarkets, sortOptions } from '../services/predictionService'
+import { eventDisplayStatus, getMatchMarkets, isWinner, sortOptions } from '../services/predictionService'
 import { CATEGORY_LABEL, formatClosesIn, formatDateTime, formatDay, formatScore, formatTime } from '../utils/format'
 
 /**
@@ -91,7 +91,7 @@ function Market({ event, about = [], onNavigate }) {
   const { pick, isSelected } = useBetSlip()
   const status = eventDisplayStatus(event)
   const open = status === 'open'
-  const options = sortOptions(event.options).filter((o) => o.status === 'active' || o.id === event.winning_option_id)
+  const options = sortOptions(event.options).filter((o) => o.status === 'active' || isWinner(event, o.id))
   // 1 X 2 sempre lado a lado; listas longas (ex.: campeão) quebram em 2 ou 3 colunas
   const cols =
     options.length === 3 ? 'grid-cols-3' : options.length === 2 || options.length === 4 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3'
@@ -122,7 +122,7 @@ function Market({ event, about = [], onNavigate }) {
             label={o.name}
             odds={o.odds}
             disabled={!open}
-            winner={event.winning_option_id === o.id}
+            winner={isWinner(event, o.id)}
             selected={isSelected(o.id)}
             onClick={() => pick(event, o)}
           />

@@ -8,7 +8,7 @@ import { Tabs } from '../components/ui/Inputs'
 import { EmptyState, ErrorState, SkeletonRows } from '../components/ui/StateViews'
 import { useAsync } from '../hooks/useAsync'
 import { useAuth } from '../context/AuthContext'
-import { getMyGames } from '../services/predictionService'
+import { getMyGames, sortOptions, winningIds } from '../services/predictionService'
 import { CATEGORY_LABEL, formatDateTime, formatOdds } from '../utils/format'
 
 // Resultado do palpite, do ponto de vista do participante
@@ -181,12 +181,14 @@ function EventHeader({ event }) {
 }
 
 function EventResult({ event }) {
-  const winner = event.options?.find((o) => o.id === event.winning_option_id)
+  // pode haver mais de uma vencedora (ex.: +/- gols: com 3x2, +4.5 e -6.5 batem)
+  const ids = winningIds(event)
+  const winners = sortOptions(event.options ?? []).filter((o) => ids.includes(o.id))
   return (
     <p className="text-sm">
-      <span className="text-muted">Resultado do evento: </span>
-      {event.status === 'settled' && winner ? (
-        <span className="font-medium">{winner.name}</span>
+      <span className="text-muted">{winners.length > 1 ? 'Opções vencedoras: ' : 'Resultado do evento: '}</span>
+      {event.status === 'settled' && winners.length ? (
+        <span className="font-medium">{winners.map((o) => o.name).join(', ')}</span>
       ) : event.status === 'void' ? (
         <span className="text-void">evento anulado{event.void_reason ? ` (${event.void_reason})` : ''}</span>
       ) : (

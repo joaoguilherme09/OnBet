@@ -166,8 +166,9 @@ export const deleteEvent = async (id) => unwrap(await sb().from('prediction_even
 
 export const getEventSummary = async (eventId) => unwrap(await sb().rpc('admin_event_summary', { p_event_id: eventId }))
 
-export const settleEvent = async (eventId, optionId) =>
-  unwrap(await sb().rpc('settle_event', { p_event_id: eventId, p_winning_option_id: optionId }))
+/** Apura o evento com uma ou mais opções vencedoras. */
+export const settleEvent = async (eventId, optionIds) =>
+  unwrap(await sb().rpc('settle_event_multi', { p_event_id: eventId, p_winning_option_ids: optionIds }))
 
 export const voidEvent = async (eventId, reason) => unwrap(await sb().rpc('void_event', { p_event_id: eventId, p_reason: reason }))
 
