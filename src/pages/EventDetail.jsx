@@ -12,6 +12,7 @@ import {
   getDistribution,
   getEvent,
   getMyPredictionsForEvent,
+  isWinner,
   sortOptions,
 } from '../services/predictionService'
 import { CATEGORY_LABEL, formatClosesIn, formatDateTime, formatOdds, formatScore } from '../utils/format'
@@ -30,7 +31,7 @@ export default function EventDetail() {
 
   const e = event.data
   const status = eventDisplayStatus(e)
-  const options = sortOptions(e.options).filter((o) => o.status === 'active' || o.id === e.winning_option_id)
+  const options = sortOptions(e.options).filter((o) => o.status === 'active' || isWinner(e, o.id))
   const counts = dist.data ?? {}
   const total = Object.values(counts).reduce((a, b) => a + b, 0)
 
@@ -75,7 +76,7 @@ export default function EventDetail() {
         {options.map((o) => {
           const n = counts[o.id] ?? 0
           const pct = total ? Math.round((n / total) * 100) : 0
-          const winner = e.winning_option_id === o.id
+          const winner = isWinner(e, o.id)
           const selected = isSelected(o.id)
           return (
             <button

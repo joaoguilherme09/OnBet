@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import StatusBadge from './StatusBadge'
 import { useBetSlip } from '../context/BetSlipContext'
-import { eventDisplayStatus, sortOptions } from '../services/predictionService'
+import { eventDisplayStatus, isWinner, sortOptions } from '../services/predictionService'
 import { CATEGORY_LABEL, formatClosesIn, formatDateTime, formatOdds } from '../utils/format'
 
 /** Card de evento com odds clicáveis (abrem o cupom). */
@@ -9,7 +9,7 @@ export default function PredictionCard({ event, compact = false }) {
   const { pick, isSelected } = useBetSlip()
   const status = eventDisplayStatus(event)
   const canPick = status === 'open'
-  const options = sortOptions(event.options).filter((o) => o.status === 'active' || o.id === event.winning_option_id)
+  const options = sortOptions(event.options).filter((o) => o.status === 'active' || isWinner(event, o.id))
   const cols = options.length === 3 ? 'grid-cols-3' : options.length === 1 ? 'grid-cols-1' : 'grid-cols-2'
   const visible = compact ? options.slice(0, 6) : options
 
@@ -32,7 +32,7 @@ export default function PredictionCard({ event, compact = false }) {
 
       <ul className={`grid gap-2 ${cols}`}>
         {visible.map((o) => {
-          const winner = event.winning_option_id === o.id
+          const winner = isWinner(event, o.id)
           const selected = isSelected(o.id)
           return (
             <li key={o.id}>

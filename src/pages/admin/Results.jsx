@@ -57,32 +57,65 @@ export default function Results() {
   )
 }
 
-/** Sugere a opção vencedora a partir do placar (partidas 1X2). */
+// opções de linha de gols, ex.: "+2.5 gols" e "-3.5 gols"
+const GOAL_LINE = /^([+-])\s*(\d+(?:[.,]\d+)?)\s*gols?$/i
+const goalLine = (name) => {
+  const m = GOAL_LINE.exec(name.trim())
+  return m ? { over: m[1] === '+', line: Number(m[2].replace(',', '.')) } : null
+}
+/** Evento de +/- gols: todas as opções são linhas de gols. Nele, várias opções podem bater. */
+const isGoalsEvent = (event) => (event.options?.length ?? 0) > 0 && event.options.every((o) => goalLine(o.name))
+
+/** Sugere as opções vencedoras a partir do placar (1X2, quem passa e +/- gols). */
 function suggestFromScore(event) {
   const m = event.match
-  if (!m || m.status !== 'finished' || m.home_score == null) return null
+  if (!m || m.status !== 'finished' || m.home_score == null || m.away_score == null) return []
   const opts = event.options ?? []
-  if (m.home_score === m.away_score) return opts.find((o) => !o.team_id && /empate/i.test(o.name))?.id ?? null
+  if (isGoalsEvent(event)) {
+    const total = Number(m.home_score) + Number(m.away_score)
+    return opts.filter((o) => {
+      const g = goalLine(o.name)
+      return g.over ? total > g.line : total < g.line
+    }).map((o) => o.id)
+  }
+  if (m.home_score === m.away_score) {
+    const draw = opts.find((o) => !o.team_id && /empate/i.test(o.name))
+    return draw ? [draw.id] : []
+  }
   const winnerTeam = m.home_score > m.away_score ? m.home?.id : m.away?.id
-  return opts.find((o) => o.team_id === winnerTeam)?.id ?? null
+  const team = opts.find((o) => o.team_id === winnerTeam)
+  return team ? [team.id] : []
 }
 
 function SettleCard({ event, onDone }) {
   const toast = useToast()
   const summary = useAsync(() => getEventSummary(event.id), [event.id])
   const suggested = suggestFromScore(event)
-  const [winner, setWinner] = useState(suggested ?? '')
+  const [winners, setWinners] = useState(suggested)
+  // várias vencedoras: ligado sozinho no evento de gols, ou quando o admin marca
+  const [multi, setMulti] = useState(isGoalsEvent(event) || suggested.length > 1)
   const [reason, setReason] = useState('')
   const [voiding, setVoiding] = useState(false)
 
   const rows = summary.data ?? []
   const totalStake = rows.reduce((a, r) => a + Number(r.total_stake), 0)
   const totalPreds = rows.reduce((a, r) => a + Number(r.predictions), 0)
-  const chosen = rows.find((r) => r.option_id === winner)
+  const chosen = rows.filter((r) => winners.includes(r.option_id))
+
+  function toggle(id) {
+    if (!multi) return setWinners([id])
+    setWinners((w) => (w.includes(id) ? w.filter((x) => x !== id) : [...w, id]))
+  }
+
+  function setMultiMode(on) {
+    setMulti(on)
+    // ao voltar para uma vencedora só, fica a primeira marcada
+    if (!on) setWinners((w) => w.slice(0, 1))
+  }
 
   async function settle() {
     try {
-      const r = await settleEvent(event.id, winner)
+      const r = await settleEvent(event.id, winners)
       toast.success(
         `Evento apurado: ${r.winners} acerto(s), ${formatCoins(r.total_paid)} ON Coins creditados.` +
           (r.parlay_legs ? ` Múltiplas: ${r.parlays_won} paga(s), ${r.parlays_lost} perdida(s).` : ''),
@@ -125,16 +158,27 @@ function SettleCard({ event, onDone }) {
         <SkeletonRows rows={1} />
       ) : (
         <fieldset className="space-y-2">
-          <legend className="sr-only">Opção vencedora</legend>
+          <legend className="sr-only">{multi ? 'Opções vencedoras' : 'Opção vencedora'}</legend>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={multi} onChange={(e) => setMultiMode(e.target.checked)} className="accent-gold" />
+            Mais de uma opção vencedora
+            <span className="text-xs text-muted">(ex.: +/- gols, onde várias linhas batem juntas)</span>
+          </label>
           {rows.map((r) => (
             <label
               key={r.option_id}
               className="flex cursor-pointer flex-wrap items-center gap-3 rounded-lg border border-line px-3 py-2 text-sm has-checked:border-gold has-checked:bg-gold/5"
             >
-              <input type="radio" name={`win-${event.id}`} className="accent-[var(--color-gold)]" checked={winner === r.option_id} onChange={() => setWinner(r.option_id)} />
+              <input
+                type={multi ? 'checkbox' : 'radio'}
+                name={`win-${event.id}`}
+                className="accent-[var(--color-gold)]"
+                checked={winners.includes(r.option_id)}
+                onChange={() => toggle(r.option_id)}
+              />
               <span className="flex-1">
                 {r.name} <span className="num text-muted">{formatOdds(r.odds)}</span>
-                {suggested === r.option_id && <span className="ml-2 text-xs text-gold-bright">sugerido pelo placar</span>}
+                {suggested.includes(r.option_id) && <span className="ml-2 text-xs text-gold-bright">sugerido pelo placar</span>}
               </span>
               <span className="text-xs text-muted">
                 {r.predictions} palpite(s), <Coins value={r.total_stake} />
@@ -150,8 +194,10 @@ function SettleCard({ event, onDone }) {
       <div className="flex flex-wrap items-center gap-2">
         <ConfirmButton
           variant="primary"
-          disabled={!winner}
-          confirmLabel={chosen ? `Confirmar ${chosen.name}?` : 'Confirmar?'}
+          disabled={!winners.length}
+          confirmLabel={
+            chosen.length === 1 ? `Confirmar ${chosen[0].name}?` : chosen.length > 1 ? `Confirmar ${chosen.length} vencedoras?` : 'Confirmar?'
+          }
           onConfirm={settle}
         >
           Apurar resultado
