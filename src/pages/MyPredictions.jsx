@@ -47,7 +47,7 @@ export default function MyPredictions() {
     <div className="mx-auto max-w-4xl space-y-6">
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold">Meus palpites</h1>
-        <p className="text-muted">Os jogos em que você palpitou, o resultado oficial e se o seu palpite bateu.</p>
+        <p className="text-muted">Os jogos em que você palpitou, o resultado de cada evento e se o seu palpite bateu.</p>
       </header>
 
       {games.data && games.data.length > 0 && (
@@ -114,7 +114,6 @@ function GameRow({ game }) {
   const { event, picks, status } = game
   const match = event.match
   const winner = event.options?.find((o) => o.id === event.winning_option_id)
-  const hasScore = match && match.home_score != null && match.away_score != null
 
   return (
     <li className="card space-y-3 p-4">
@@ -128,9 +127,7 @@ function GameRow({ game }) {
             <Link to={`/palpites/${event.id}`} className="mt-1 flex items-center gap-2 hover:text-gold-bright">
               <TeamBadge team={match.home} size="sm" />
               <span className="truncate font-medium">{match.home.name}</span>
-              <span className="num shrink-0 px-1 font-semibold text-gold-bright">
-                {hasScore ? `${match.home_score} × ${match.away_score}` : '×'}
-              </span>
+              <span className="shrink-0 px-1 text-muted">×</span>
               <span className="truncate font-medium">{match.away.name}</span>
               <TeamBadge team={match.away} size="sm" />
             </Link>
@@ -146,7 +143,7 @@ function GameRow({ game }) {
       </div>
 
       <p className="text-sm">
-        <span className="text-muted">Resultado oficial: </span>
+        <span className="text-muted">Resultado do evento: </span>
         {event.status === 'settled' && winner ? (
           <span className="font-medium">{winner.name}</span>
         ) : event.status === 'void' ? (
